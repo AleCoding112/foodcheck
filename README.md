@@ -97,7 +97,8 @@ Pages a ogni push su `main`. Va abilitato una volta sola:
 ## Licenza
 
 Codice: MIT (vedi [LICENSE](LICENSE)).
-Dati dei prodotti: ODbL, di Open Food Facts e dei suoi contributori.
+Dati dei prodotti: ODbL, di Open Food Facts e dei suoi contributori — gli
+obblighi di attribuzione sono spiegati in [NOTICE.md](NOTICE.md).
 
 FoodCheck riporta quello che il database contiene. Per allergie e intolleranze
 fa fede l'etichetta sulla confezione. Non è un dispositivo medico.
