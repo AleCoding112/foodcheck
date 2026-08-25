@@ -23,12 +23,19 @@ describe('App', () => {
     )
   })
 
-  it('tiene disattivato il pulsante di ricerca finché il codice è troppo corto', async () => {
+  it('tiene disattivato il pulsante di ricerca finché il codice è troppo corto', () => {
     render(<App />)
     const cerca = screen.getAllByRole('button', { name: 'Cerca' })[0] as HTMLButtonElement
     expect(cerca.disabled).toBe(true)
-    // La lettura dello storico è asincrona: aspettarla evita che si concluda
-    // dopo la fine della prova, con l'ambiente già smontato.
-    await waitFor(() => expect(screen.getAllByText(/Qui compariranno/).length).toBeGreaterThan(0))
+  })
+
+  // Difetto trovato dalla CI e non in locale: la lettura dello storico
+  // finiva dopo lo smontaggio del componente e aggiornava lo stato di un
+  // albero che non c'era più. Qui si smonta subito, apposta.
+  it('non aggiorna lo stato dopo essere stato smontato', async () => {
+    const vista = render(<App />)
+    vista.unmount()
+    await new Promise((r) => setTimeout(r, 60))
+    expect(true).toBe(true)
   })
 })

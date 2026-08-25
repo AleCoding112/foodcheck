@@ -19,8 +19,22 @@ export default function App() {
   const [manuale, setManuale] = useState('')
   const richiestaCorrente = useRef(0)
 
+  // Lettura da IndexedDB e chiamate di rete finiscono dopo qualche decimo di
+  // secondo: se nel frattempo il componente e' stato smontato, aggiornare lo
+  // stato e' un errore. Il valore va rimesso a true dentro l'effetto e non
+  // nell'inizializzazione, perche' in StrictMode React monta, smonta e rimonta.
+  const montato = useRef(true)
+  useEffect(() => {
+    montato.current = true
+    return () => {
+      montato.current = false
+    }
+  }, [])
+
   const ricaricaRecenti = useCallback(() => {
-    ultimeScansioni().then(setRecenti)
+    ultimeScansioni().then((righe) => {
+      if (montato.current) setRecenti(righe)
+    })
   }, [])
 
   useEffect(() => {
@@ -35,7 +49,7 @@ export default function App() {
       setVista({ tipo: 'ricerca', codice })
 
       const risultato = await cercaProdotto(codice, { forza: opzioni.forza })
-      if (id !== richiestaCorrente.current) return
+      if (id !== richiestaCorrente.current || !montato.current) return
 
       if (opzioni.registra !== false) {
         const p = risultato.status === 'trovato' ? risultato.product : undefined
@@ -50,6 +64,7 @@ export default function App() {
         ricaricaRecenti()
       }
 
+      if (!montato.current) return
       setVista({ tipo: 'esito', risultato })
     },
     [ricaricaRecenti],
