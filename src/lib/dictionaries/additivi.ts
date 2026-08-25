@@ -128,9 +128,38 @@ export const ADDITIVI: Record<string, Additivo> = {
  *  Se la sigla esatta non c'e' si prova la forma senza suffisso (e322i -> e322):
  *  le sottovarianti hanno quasi sempre lo stesso nome commerciale. */
 export function descriviAdditivo(tag: string): { sigla: string; nome?: string; categoria?: string } {
-  const raw = tag.includes(':') ? tag.slice(tag.indexOf(':') + 1) : tag
-  const key = raw.toLowerCase().replace(/\s+/g, '')
-  const sigla = key.toUpperCase()
-  const trovato = ADDITIVI[key] ?? ADDITIVI[key.replace(/[a-z]+$/, '')]
+  const key = chiaveAdditivo(tag)
+  // Sulle etichette la sigla si scrive con la E maiuscola e il suffisso
+  // minuscolo: E322i, non E322I.
+  const sigla = 'E' + key.slice(1)
+  const trovato = ADDITIVI[key] ?? ADDITIVI[radice(key)]
   return { sigla, nome: trovato?.nome, categoria: trovato?.categoria }
+}
+
+function chiaveAdditivo(tag: string): string {
+  const raw = tag.includes(':') ? tag.slice(tag.indexOf(':') + 1) : tag
+  return raw.toLowerCase().replace(/\s+/g, '')
+}
+
+/** "e322i" -> "e322": la sottovariante e il suo capostipite. */
+function radice(key: string): string {
+  return key.replace(/[a-z]+$/, '')
+}
+
+/** Open Food Facts elenca sia il capostipite sia le sue varianti, e la scheda
+ *  finiva per mostrare due volte "Lecitine". Qui resta una voce sola: quella
+ *  generica quando c'è, altrimenti la variante. */
+export function additiviDistinti(tags: string[]): string[] {
+  const chiavi = tags.map(chiaveAdditivo)
+  const generici = new Set(chiavi.filter((k) => radice(k) === k))
+  const visti = new Set<string>()
+  const out: string[] = []
+  tags.forEach((tag, i) => {
+    const k = chiavi[i]
+    if (k !== radice(k) && generici.has(radice(k))) return
+    if (visti.has(k)) return
+    visti.add(k)
+    out.push(tag)
+  })
+  return out
 }

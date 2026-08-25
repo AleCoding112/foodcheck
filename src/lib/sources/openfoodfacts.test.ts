@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { FLAVORS, normalizza } from './openfoodfacts'
-import { descriviAdditivo } from '../dictionaries/additivi'
+import { additiviDistinti, descriviAdditivo } from '../dictionaries/additivi'
 import { traduciAllergene } from '../dictionaries/tags'
 
 const FOOD = FLAVORS[0]
@@ -72,7 +72,15 @@ describe('dizionari', () => {
 
   it('dà un nome agli additivi, sottovarianti comprese', () => {
     expect(descriviAdditivo('en:e322')).toMatchObject({ sigla: 'E322', nome: 'Lecitine' })
-    expect(descriviAdditivo('en:e322i').nome).toBe('Lecitine')
+    expect(descriviAdditivo('en:e322i')).toMatchObject({ sigla: 'E322i', nome: 'Lecitine' })
     expect(descriviAdditivo('en:e9999').nome).toBeUndefined()
+  })
+
+  it('non elenca due volte lo stesso additivo', () => {
+    // Il database restituisce sia il capostipite sia la variante.
+    expect(additiviDistinti(['en:e322', 'en:e322i'])).toEqual(['en:e322'])
+    // Se c'è solo la variante, quella si tiene.
+    expect(additiviDistinti(['en:e150d'])).toEqual(['en:e150d'])
+    expect(additiviDistinti(['en:e322', 'en:e471'])).toEqual(['en:e322', 'en:e471'])
   })
 })

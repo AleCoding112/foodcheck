@@ -1,28 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Scanner } from './components/Scanner'
-import { ProductView } from './components/ProductView'
+import { useScanner } from './hooks/useScanner'
+import { Foglio } from './components/Foglio'
+import { SchedaProdotto } from './components/SchedaProdotto'
+import { Cercando, CodiceAMano, ErroreFotocamera, EsitoVuoto, Recenti } from './components/Pannelli'
 import { cercaProdotto } from './lib/sources'
 import { registraScansione, ultimeScansioni, type Scansione } from './lib/db'
-import { formatBarcode, normalizeBarcode } from './lib/barcode'
-import { quando } from './lib/format'
+import { normalizeBarcode } from './lib/barcode'
 import type { Resolution } from './types/product'
 
-type Vista =
-  | { tipo: 'home' }
+type Fase =
   | { tipo: 'scansione' }
   | { tipo: 'ricerca'; codice: string }
   | { tipo: 'esito'; risultato: Resolution }
 
 export default function App() {
-  const [vista, setVista] = useState<Vista>({ tipo: 'home' })
+  const [fase, setFase] = useState<Fase>({ tipo: 'scansione' })
   const [recenti, setRecenti] = useState<Scansione[]>([])
-  const [manuale, setManuale] = useState('')
+  const [fotocameraAccesa, setFotocameraAccesa] = useState(false)
+  const [finestraCodice, setFinestraCodice] = useState(false)
   const richiestaCorrente = useRef(0)
 
-  // Lettura da IndexedDB e chiamate di rete finiscono dopo qualche decimo di
-  // secondo: se nel frattempo il componente e' stato smontato, aggiornare lo
-  // stato e' un errore. Il valore va rimesso a true dentro l'effetto e non
-  // nell'inizializzazione, perche' in StrictMode React monta, smonta e rimonta.
+  // Le letture da IndexedDB e dalla rete finiscono dopo qualche decimo di
+  // secondo: se nel frattempo il componente è stato smontato, aggiornare lo
+  // stato è un errore. Il valore va rimesso a true dentro l'effetto, perché
+  // in StrictMode React monta, smonta e rimonta.
   const montato = useRef(true)
   useEffect(() => {
     montato.current = true
@@ -41,12 +42,42 @@ export default function App() {
     ricaricaRecenti()
   }, [ricaricaRecenti])
 
+  // Un indirizzo del tipo ?p=8000500310427 apre direttamente quel prodotto:
+  // serve a condividere un link, a metterlo fra i preferiti, e a riaprire
+  // l'app dove si era rimasti.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const richiesto = new URLSearchParams(window.location.search).get('p')
+    if (richiesto && normalizeBarcode(richiesto).length >= 8) {
+      cercaRef.current(richiesto, { registra: false })
+    }
+    // Volutamente una volta sola, al primo caricamento.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Se il permesso è già stato dato, la fotocamera parte da sola: aprire l'app
+  // e trovarsi già in scansione è metà del valore di questa app. Al primo uso
+  // serve invece un tocco, perché iOS non concede la fotocamera senza un gesto.
+  useEffect(() => {
+    let annullato = false
+    navigator.permissions
+      ?.query({ name: 'camera' as PermissionName })
+      .then((p) => {
+        if (!annullato && p.state === 'granted') setFotocameraAccesa(true)
+      })
+      .catch(() => undefined)
+    return () => {
+      annullato = true
+    }
+  }, [])
+
   const cerca = useCallback(
     async (codiceGrezzo: string, opzioni: { forza?: boolean; registra?: boolean } = {}) => {
       const codice = normalizeBarcode(codiceGrezzo)
       if (!codice) return
       const id = ++richiestaCorrente.current
-      setVista({ tipo: 'ricerca', codice })
+      setFinestraCodice(false)
+      setFase({ tipo: 'ricerca', codice })
 
       const risultato = await cercaProdotto(codice, { forza: opzioni.forza })
       if (id !== richiestaCorrente.current || !montato.current) return
@@ -65,180 +96,182 @@ export default function App() {
       }
 
       if (!montato.current) return
-      setVista({ tipo: 'esito', risultato })
+      setFase({ tipo: 'esito', risultato })
     },
     [ricaricaRecenti],
   )
 
-  const inviaManuale = (e: React.FormEvent) => {
-    e.preventDefault()
-    const codice = normalizeBarcode(manuale)
-    if (codice.length < 8) return
-    setManuale('')
-    cerca(codice)
-  }
+  // L'effetto del link diretto parte prima che `cerca` sia definita:
+  // questo riferimento tiene sempre l'ultima versione.
+  const cercaRef = useRef(cerca)
+  cercaRef.current = cerca
 
-  if (vista.tipo === 'scansione') {
-    return (
-      <Scanner
-        onCodice={(codice) => cerca(codice)}
-        onChiudi={() => setVista({ tipo: 'home' })}
-      />
-    )
-  }
+  const tornaAScansione = useCallback(() => {
+    richiestaCorrente.current++
+    setFase({ tipo: 'scansione' })
+  }, [])
+
+  // Mentre si legge una scheda la decodifica si ferma e l'immagine si congela:
+  // continuare a macinare fotogrammi sotto un foglio coperto è solo batteria
+  // buttata.
+  const inPausa = fase.tipo !== 'scansione' || finestraCodice
+  const scanner = useScanner(fotocameraAccesa, inPausa, cerca)
+
+  const cercando = fase.tipo === 'scansione' && fotocameraAccesa && !scanner.errore
 
   return (
-    <div className="app">
-      <div className="topbar">
-        <span className="brand">
-          <span className="bars" aria-hidden="true" />
-          FoodCheck
-        </span>
-        {vista.tipo !== 'home' && (
-          <button type="button" className="btn btn-quiet" onClick={() => setVista({ tipo: 'home' })}>
-            ← Home
-          </button>
-        )}
-      </div>
+    <main className="palco" data-congelato={inPausa}>
+      <video ref={scanner.videoRef} playsInline muted aria-hidden="true" />
+      <div className="palco-velo" aria-hidden="true" />
 
-      {vista.tipo === 'home' && (
-        <>
-          <section className="hero">
-            <h1>Scansiona un codice a barre, sappi cosa stai per mangiare.</h1>
-            <p>Ingredienti, allergeni dichiarati, valori nutrizionali e additivi. Nessun account, nessun dato che esce dal telefono.</p>
-            <button
-              type="button"
-              className="btn btn-primary btn-lg btn-block"
-              onClick={() => setVista({ tipo: 'scansione' })}
-            >
-              Inquadra un prodotto
-            </button>
-            <form className="manual" onSubmit={inviaManuale}>
-              <input
-                value={manuale}
-                onChange={(e) => setManuale(e.target.value)}
-                inputMode="numeric"
-                autoComplete="off"
-                maxLength={16}
-                placeholder="oppure digita il codice"
-                aria-label="Codice a barre"
-              />
-              <button type="submit" className="btn btn-ghost" disabled={normalizeBarcode(manuale).length < 8}>
-                Cerca
-              </button>
-            </form>
-          </section>
-
-          <h2 className="section-label">Scansioni recenti</h2>
-          {recenti.length === 0 ? (
-            <p className="empty">Qui compariranno i prodotti che hai letto. Restano solo su questo dispositivo.</p>
-          ) : (
-            <ul className="recent">
-              {recenti.map((r) => (
-                <li key={r.barcode}>
-                  <button type="button" className="recent-item" onClick={() => cerca(r.barcode, { registra: false })}>
-                    {r.image ? (
-                      <img className="recent-thumb" src={r.image} alt="" loading="lazy" />
-                    ) : (
-                      <span className="recent-thumb" aria-hidden="true" />
-                    )}
-                    <span className="recent-main">
-                      <span className="recent-name">{r.trovato ? (r.name ?? 'Senza nome') : 'Non trovato'}</span>
-                      <span className="recent-sub">
-                        {r.brand ? `${r.brand} · ` : ''}
-                        {formatBarcode(r.barcode)} · {quando(r.at)}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
-
-      {vista.tipo === 'ricerca' && (
-        <div className="state">
-          <span className="spinner" aria-hidden="true" />
-          <h2>Cerco il prodotto</h2>
-          <p className="code mono">{formatBarcode(vista.codice)}</p>
+      {!scanner.errore && fase.tipo === 'scansione' && (
+        <div className="mirino" data-dormiente={!fotocameraAccesa} aria-hidden="true">
+          <i /><i /><i /><i />
+          <b />
         </div>
       )}
 
-      {vista.tipo === 'esito' && <Esito risultato={vista.risultato} onRiprova={cerca} />}
-    </div>
+      <div className="barra">
+        <span className="marchio">
+          <span aria-hidden="true" />
+          FoodCheck
+        </span>
+        <div className="gruppo-tondi">
+          {scanner.torciaDisponibile && (
+            <button
+              type="button"
+              className="tondo"
+              aria-pressed={scanner.torciaAccesa}
+              aria-label="Torcia"
+              onClick={scanner.commutaTorcia}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
+              </svg>
+            </button>
+          )}
+          <button
+            type="button"
+            className="tondo num"
+            aria-label="Digita il codice a mano"
+            onClick={() => setFinestraCodice(true)}
+          >
+            123
+          </button>
+        </div>
+      </div>
+
+      {!fotocameraAccesa && !scanner.errore && fase.tipo === 'scansione' && (
+        <div className="avvio">
+          <h1>Sappi cosa stai per mangiare</h1>
+          <p>Nessun account. Niente esce da questo telefono.</p>
+          <button type="button" className="bottone bottone-pieno" onClick={() => setFotocameraAccesa(true)}>
+            Attiva la fotocamera
+          </button>
+          <button type="button" className="bottone-piatto" onClick={() => setFinestraCodice(true)}>
+            preferisco digitare il codice
+          </button>
+        </div>
+      )}
+
+      {cercando && (
+        <p className="istruzione">
+          {scanner.stato === 'avvio' ? 'Accendo la fotocamera…' : 'Riempi il riquadro con il codice a barre'}
+        </p>
+      )}
+
+      {scanner.errore ? (
+        <Foglio stato="aperto">
+          <ErroreFotocamera motivo={scanner.errore} onCodiceAMano={() => setFinestraCodice(true)} />
+        </Foglio>
+      ) : fase.tipo === 'scansione' ? (
+        // Al primo avvio, senza nulla da mostrare, il foglio resta chiuso:
+        // un riquadro vuoto sotto l'invito ad accendere la fotocamera sarebbe
+        // solo rumore.
+        recenti.length === 0 && !fotocameraAccesa ? null : (
+          <Foglio stato="spia">
+            <Recenti righe={recenti} onApri={(codice) => cerca(codice, { registra: false })} />
+          </Foglio>
+        )
+      ) : (
+        <Foglio stato="aperto" onChiudi={tornaAScansione}>
+          {fase.tipo === 'ricerca' ? (
+            <Cercando codice={fase.codice} />
+          ) : (
+            <Esito risultato={fase.risultato} onCerca={cerca} onChiudi={tornaAScansione} />
+          )}
+        </Foglio>
+      )}
+
+      {finestraCodice && (
+        <CodiceAMano onCerca={(codice) => cerca(codice)} onChiudi={() => setFinestraCodice(false)} />
+      )}
+    </main>
   )
 }
 
 function Esito({
   risultato,
-  onRiprova,
+  onCerca,
+  onChiudi,
 }: {
   risultato: Resolution
-  onRiprova: (codice: string, opzioni?: { forza?: boolean; registra?: boolean }) => void
+  onCerca: (codice: string, opzioni?: { forza?: boolean; registra?: boolean }) => void
+  onChiudi: () => void
 }) {
+  const riprova = (codice: string) => ({
+    testo: 'Cerca di nuovo',
+    onClick: () => onCerca(codice, { forza: true, registra: false }),
+  })
+
   switch (risultato.status) {
     case 'trovato':
       return (
-        <ProductView
+        <SchedaProdotto
           prodotto={risultato.product}
           daCache={risultato.fromCache}
-          onAggiorna={() => onRiprova(risultato.product.barcode, { forza: true, registra: false })}
+          onAggiorna={() => onCerca(risultato.product.barcode, { forza: true, registra: false })}
         />
       )
 
     case 'codice-interno':
       return (
-        <div className="state">
-          <h2>Codice interno del punto vendita</h2>
-          <p>
-            Questo codice è stato stampato dal negozio — banco gastronomia, frutta a peso, etichette di
-            reparto. Non esiste in nessun database mondiale, perché vale solo dentro quel supermercato.
-          </p>
-          <p className="code mono">{formatBarcode(risultato.barcode)}</p>
-        </div>
+        <EsitoVuoto
+          titolo="Codice interno del punto vendita"
+          testo="L’ha stampato il negozio: banco gastronomia, frutta a peso, etichette di reparto. Fuori da quel supermercato non esiste."
+          codice={risultato.barcode}
+          azione={{ testo: 'Chiudi', onClick: onChiudi }}
+        />
       )
 
     case 'non-trovato':
       return (
-        <div className="state">
-          <h2>Questo prodotto non è nel database</h2>
-          <p>
-            Capita spesso con le marche del supermercato e i prodotti locali: il database è compilato da
-            volontari e nessuno l’ha ancora inserito.
-          </p>
-          <p className="code mono">{formatBarcode(risultato.barcode)}</p>
-          <button type="button" className="btn btn-ghost" onClick={() => onRiprova(risultato.barcode, { forza: true, registra: false })}>
-            Cerca di nuovo
-          </button>
-        </div>
+        <EsitoVuoto
+          titolo="Non è nel database"
+          testo="Capita con le marche del supermercato e i prodotti locali: l’archivio è compilato da volontari e nessuno l’ha ancora inserito."
+          codice={risultato.barcode}
+          azione={riprova(risultato.barcode)}
+        />
       )
 
     case 'offline':
       return (
-        <div className="state">
-          <h2>Sei senza connessione</h2>
-          <p>
-            I prodotti già letti restano consultabili. Per questo serve la rete: riprova quando torna il
-            segnale.
-          </p>
-          <p className="code mono">{formatBarcode(risultato.barcode)}</p>
-          <button type="button" className="btn btn-ghost" onClick={() => onRiprova(risultato.barcode, { forza: true, registra: false })}>
-            Riprova
-          </button>
-        </div>
+        <EsitoVuoto
+          titolo="Sei senza connessione"
+          testo="I prodotti già letti restano consultabili. Per questo serve la rete."
+          codice={risultato.barcode}
+          azione={riprova(risultato.barcode)}
+        />
       )
 
-    case 'errore':
     default:
       return (
-        <div className="state">
-          <h2>Non sono riuscito a controllare</h2>
-          <p>{risultato.message}</p>
-          <button type="button" className="btn btn-ghost" onClick={() => onRiprova(risultato.barcode, { forza: true, registra: false })}>
-            Riprova
-          </button>
-        </div>
+        <EsitoVuoto
+          titolo="Non sono riuscito a controllare"
+          testo={risultato.message}
+          codice={risultato.barcode}
+          azione={riprova(risultato.barcode)}
+        />
       )
   }
 }

@@ -1,79 +1,84 @@
-/* Palette unica dell'app: gli stessi valori del documento di progetto.
-   L'accento e' indaco e non verde/rosso di proposito: quei due colori
-   restano riservati agli esiti del profilo allergie (fase 2), e non
-   devono mai confondersi con la decorazione dell'interfaccia. */
+/* FoodCheck — sistema visivo.
+
+   Una scelta sta sopra tutte le altre: l'app vive sopra l'immagine della
+   fotocamera, quindi il tema è scuro e basta. Un tema chiaro sopra un video
+   scuro non funziona: i bordi spariscono, il contrasto salta, e a metà
+   giornata l'app cambierebbe faccia mentre la usi in corsia.
+
+   Il viola è l'unico colore dell'interfaccia. Verde, ambra e rosso non sono
+   decorazione: dicono se un valore è basso, medio o alto, e non compaiono
+   mai per altri motivi. È la ragione per cui l'accento non è verde. */
+
 :root {
-  --ground: #F5F5F9;
-  --surface: #FFFFFF;
-  --surface-2: #EEEEF4;
-  --ink: #15151C;
-  --ink-soft: #3C3C4A;
-  --muted: #63636F;
-  --rule: #DCDCE6;
-  --rule-soft: #E8E8F0;
-  --accent: #2E36C9;
-  --accent-ink: #FFFFFF;
-  --accent-soft: #E5E6FA;
-  --ok: #1F7A4C;
-  --ok-bg: #E2F1E8;
-  --warn: #8A6410;
-  --warn-bg: #F6EDD8;
-  --bad: #B32D1E;
-  --bad-bg: #F8E4E1;
-  --shadow: 0 1px 2px rgba(21, 21, 28, .05), 0 8px 24px -12px rgba(21, 21, 28, .18);
+  color-scheme: dark;
 
-  --nutri-a: #1E8F4E;
-  --nutri-b: #86BC2A;
-  --nutri-c: #F7C300;
-  --nutri-d: #EE8100;
-  --nutri-e: #E63E11;
+  /* superfici, dal fondo alla superficie più alta */
+  --nero: #08080A;
+  --fondo: #101014;
+  --scheda: #17171D;
+  --rilievo: #1F1F27;
+  --bordo: rgba(255, 255, 255, .085);
+  --bordo-forte: rgba(255, 255, 255, .16);
 
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 16px;
-  --sp: 4px;
-}
+  /* testo */
+  --testo: #F4F4F7;
+  --testo-2: #A8A8B6;
+  --testo-3: #71717F;
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --ground: #0E0E14;
-    --surface: #16161E;
-    --surface-2: #1D1D27;
-    --ink: #EDEDF3;
-    --ink-soft: #C6C6D4;
-    --muted: #9494A6;
-    --rule: #2A2A36;
-    --rule-soft: #22222D;
-    --accent: #9096FF;
-    --accent-ink: #0E0E14;
-    --accent-soft: #23244A;
-    --ok: #5FC28C;
-    --ok-bg: #16301F;
-    --warn: #D9AE55;
-    --warn-bg: #33280F;
-    --bad: #F08D7E;
-    --bad-bg: #3A1B16;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -12px rgba(0, 0, 0, .7);
-  }
-}
+  /* azione */
+  --accento: #7B7BFF;
+  --accento-scuro: #4E4EE8;
+  --accento-velo: rgba(123, 123, 255, .14);
+  --su-accento: #0A0A12;
 
-:root[data-theme="dark"] {
-  --ground: #0E0E14;
-  --surface: #16161E;
-  --surface-2: #1D1D27;
-  --ink: #EDEDF3;
-  --ink-soft: #C6C6D4;
-  --muted: #9494A6;
-  --rule: #2A2A36;
-  --rule-soft: #22222D;
-  --accent: #9096FF;
-  --accent-ink: #0E0E14;
-  --accent-soft: #23244A;
-  --ok: #5FC28C;
-  --ok-bg: #16301F;
-  --warn: #D9AE55;
-  --warn-bg: #33280F;
-  --bad: #F08D7E;
-  --bad-bg: #3A1B16;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -12px rgba(0, 0, 0, .7);
+  /* giudizio: solo per i valori, mai per decorare */
+  --basso: #35C77C;
+  --medio: #F0B23C;
+  --alto: #FF6250;
+  --ignoto: #6B6B79;
+  --basso-velo: rgba(53, 199, 124, .13);
+  --medio-velo: rgba(240, 178, 60, .13);
+  --alto-velo: rgba(255, 98, 80, .13);
+
+  /* Nutri-Score, colori ufficiali della scala */
+  --ns-a: #038141;
+  --ns-b: #85BB2F;
+  --ns-c: #FECB02;
+  --ns-d: #EE8100;
+  --ns-e: #E63E11;
+
+  /* caratteri */
+  --f-ui: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --f-etichetta: 'Archivo Narrow', 'Archivo', -apple-system, sans-serif;
+  --f-num: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* scala tipografica */
+  --t-micro: 10.5px;
+  --t-mini: 12px;
+  --t-piccolo: 13.5px;
+  --t-base: 15.5px;
+  --t-medio: 17px;
+  --t-grande: 21px;
+  --t-titolo: 27px;
+  --t-enorme: 34px;
+
+  /* spazi */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 22px;
+  --s6: 30px;
+  --s7: 44px;
+
+  /* raggi */
+  --r1: 7px;
+  --r2: 12px;
+  --r3: 20px;
+  --r4: 28px;
+
+  --ombra-alta: 0 -18px 50px rgba(0, 0, 0, .65);
+  --ombra-scheda: 0 2px 18px rgba(0, 0, 0, .4);
+
+  --molla: cubic-bezier(.32, .72, 0, 1);
 }

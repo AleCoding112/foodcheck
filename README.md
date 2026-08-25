@@ -12,7 +12,8 @@ e dai progetti collegati, distribuiti con licenza ODbL.
 
 ## Stato
 
-Fase 1 completata: scanner funzionante e scheda prodotto.
+Fase 1 completata: scanner funzionante e scheda prodotto, con interfaccia
+costruita attorno alla fotocamera.
 
 | Fase | Contenuto | Stato |
 | --- | --- | --- |
@@ -44,6 +45,22 @@ npm run dev:https    # certificato autofirmato, poi apri https://<ip-del-mac>:51
 Il telefono mostrerà un avviso sul certificato: va accettato una volta.
 In alternativa, pubblica su GitHub Pages (vedi sotto) e usa l'indirizzo vero.
 
+### Fotografare le schermate
+
+L'app vive sopra la fotocamera, quindi guardarla è l'unico modo per
+progettarla. `tools/screenshot.mjs` pilota Chrome e scatta:
+
+```bash
+node tools/screenshot.mjs http://localhost:4173/ schermata.png
+node tools/screenshot.mjs "http://localhost:4173/?p=3017620422003" scheda.png 390 844 3500
+FINTA_FOTOCAMERA=1 node tools/screenshot.mjs http://localhost:4173/ scansione.png
+```
+
+`FINTA_FOTOCAMERA=1` dà a Chrome un video sintetico e concede il permesso, così
+si può vedere la schermata di scansione senza una fotocamera vera.
+`RITAGLIO="x,y,l,h"` fotografa un dettaglio, e l'ultimo parametro di posizione
+fa scorrere la scheda per vedere quello che sta sotto.
+
 ### Prove automatiche
 
 ```bash
@@ -58,10 +75,13 @@ src/
   lib/barcode.ts            validazione GTIN, origine GS1, codici interni del negozio
   lib/http.ts               coda, deduplica e timeout sulle chiamate
   lib/db.ts                 IndexedDB: cache prodotti, storico, profili, dispensa
+  lib/nutrition.ts          soglie ufficiali basso/medio/alto sui nutrienti
   lib/sources/              catena di ricerca sui quattro database aperti
   lib/dictionaries/         allergeni, etichette e additivi in italiano
   hooks/useScanner.ts       fotocamera e decodifica del codice
-  components/               scanner a schermo intero e scheda prodotto
+  components/Foglio.tsx     il pannello che sale sopra l'inquadratura
+  components/Indicatori.tsx Nutri-Score, NOVA e barre dei nutrienti
+  styles/tokens.css         colori, caratteri e spazi in un posto solo
 ```
 
 Tre scelte che vale la pena conoscere prima di metterci mano.
@@ -80,11 +100,31 @@ prodotto sbagliato, che a scaffale capita più spesso di quanto sembri.
 sa sempre quanto è vecchio un dato e può scriverlo a schermo, invece di far
 finta che sia aggiornato.
 
+**L'app non ha pagine: ha una fotocamera e un foglio che ci sale sopra.** Si
+apre già in scansione, e il prodotto trovato arriva dal basso mentre
+l'inquadratura si congela dietro. Chiuso il foglio, l'immagine riparte: si
+possono confrontare due prodotti sullo scaffale senza mai tornare indietro.
+Mentre il foglio è aperto la decodifica si ferma, perché macinare fotogrammi
+sotto un pannello coperto è solo batteria buttata.
+
+**Il tema è scuro e basta.** Un tema chiaro sopra un video scuro perde i bordi
+e il contrasto, e cambierebbe faccia a metà giornata mentre sei in corsia. Il
+viola è l'unico colore dell'interfaccia: verde, ambra e rosso sono riservati ai
+giudizi sui valori e non compaiono mai per decorare.
+
+## Un indirizzo per ogni prodotto
+
+`?p=8000500310427` apre l'app direttamente su quel prodotto: serve a
+condividere un link, a salvarlo fra i preferiti e a riaprire l'app dove si era
+rimasti.
+
 ## Quando il dato non c'è
 
 Circa sei prodotti italiani su dieci nel database non hanno il Nutri-Score, e
 molti non hanno nemmeno gli ingredienti. L'app lo dice invece di stimare:
-"non disponibile" è una risposta, un valore inventato no. La stessa regola varrà,
+"non disponibile" è una risposta, un valore inventato no. Dove i dati ci sono,
+i nutrienti sono confrontati con le soglie ufficiali basso/medio/alto usate
+sulle etichette a semaforo, con limiti diversi per solidi e bevande. La stessa regola varrà,
 molto più seriamente, per il semaforo allergeni della fase 2: senza ingredienti
 completi non si arriva mai a un via libera.
 

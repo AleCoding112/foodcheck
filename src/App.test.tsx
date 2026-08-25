@@ -1,37 +1,53 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi, beforeAll } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import 'fake-indexeddb/auto'
 import App from './App'
 
-/** Prova di montaggio: non verifica l'estetica, verifica che l'app parta.
- *  Serve a non scoprire una schermata bianca quando si è già al supermercato. */
+/** Prove di montaggio e di percorso: non giudicano l'estetica, verificano che
+ *  l'app parta e che le vie d'uscita esistano sempre. */
 
 beforeAll(() => {
-  // Nessuna chiamata di rete durante la prova.
   vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('rete non disponibile nei test'))))
 })
 
 describe('App', () => {
-  it('mostra la schermata iniziale', async () => {
+  it('si apre chiedendo la fotocamera, senza pretenderla', async () => {
     render(<App />)
     expect(screen.getByText('FoodCheck')).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Inquadra un prodotto/ })).toBeTruthy()
-    expect(screen.getByLabelText('Codice a barre')).toBeTruthy()
-    await waitFor(() =>
-      expect(screen.getByText(/Qui compariranno i prodotti che hai letto/)).toBeTruthy(),
-    )
+    expect(screen.getByRole('button', { name: /Attiva la fotocamera/ })).toBeTruthy()
+
+    // Al primo avvio non c'è nulla da mostrare: il foglio dei recenti resta
+    // chiuso invece di comparire vuoto sotto l'invito.
+    await waitFor(() => expect(screen.queryByText(/Letti di recente/i)).toBeNull())
   })
 
-  it('tiene disattivato il pulsante di ricerca finché il codice è troppo corto', () => {
+  it('offre sempre la digitazione del codice come alternativa', async () => {
     render(<App />)
-    const cerca = screen.getAllByRole('button', { name: 'Cerca' })[0] as HTMLButtonElement
+    fireEvent.click(screen.getByRole('button', { name: 'Digita il codice a mano' }))
+
+    const campo = screen.getByLabelText('Codice a barre') as HTMLInputElement
+    const cerca = screen.getByRole('button', { name: 'Cerca' }) as HTMLButtonElement
     expect(cerca.disabled).toBe(true)
+
+    fireEvent.change(campo, { target: { value: '8000500310427' } })
+    expect(cerca.disabled).toBe(false)
+
+    // Le cifre restano leggibili anche se scritte con gli spazi della confezione.
+    fireEvent.change(campo, { target: { value: '8 000500 310427' } })
+    expect(cerca.disabled).toBe(false)
   })
 
-  // Difetto trovato dalla CI e non in locale: la lettura dello storico
-  // finiva dopo lo smontaggio del componente e aggiornava lo stato di un
-  // albero che non c'era più. Qui si smonta subito, apposta.
+  it('chiude la finestra del codice con Esc', async () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Digita il codice a mano' }))
+    expect(screen.getByLabelText('Codice a barre')).toBeTruthy()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByLabelText('Codice a barre')).toBeNull())
+  })
+
+  // Difetto trovato dalla CI e non in locale: la lettura dello storico finiva
+  // dopo lo smontaggio e aggiornava lo stato di un albero che non c'era più.
   it('non aggiorna lo stato dopo essere stato smontato', async () => {
     const vista = render(<App />)
     vista.unmount()

@@ -1,421 +1,771 @@
+@import './fonts.css';
 @import './tokens.css';
 
-/* ---------- base ---------- */
+/* ============ base ============ */
 *, *::before, *::after { box-sizing: border-box; }
 
 html, body, #root { height: 100%; }
 
 body {
   margin: 0;
-  background: var(--ground);
-  color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-size: 16px;
+  background: var(--nero);
+  color: var(--testo);
+  font-family: var(--f-ui);
+  font-size: var(--t-base);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: none;
+  overscroll-behavior: none;
 }
 
-.mono, .code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-variant-numeric: tabular-nums;
-}
+h1, h2, h3, p { margin: 0; }
 
 :where(button, a, input, [tabindex]):focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: var(--r-sm);
+  outline: 2px solid var(--accento);
+  outline-offset: 3px;
+  border-radius: var(--r1);
 }
 
-/* ---------- guscio ---------- */
-.app {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  max-width: 560px;
-  margin: 0 auto;
-  padding: 0 16px calc(28px + env(safe-area-inset-bottom));
-}
-
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: calc(14px + env(safe-area-inset-top)) 0 14px;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -.02em;
-}
-
-.brand .bars {
-  display: block;
-  width: 17px;
-  height: 20px;
-  background-image: repeating-linear-gradient(90deg,
-    currentColor 0 2px, transparent 2px 4px,
-    currentColor 4px 5px, transparent 5px 8px,
-    currentColor 8px 10px, transparent 10px 11px,
-    currentColor 11px 13px, transparent 13px 17px);
-  color: var(--accent);
-  flex: none;
-}
-
-.topbar-note {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-/* ---------- bottoni ---------- */
-.btn {
-  font: inherit;
+/* Il carattere stretto in maiuscoletto è la voce delle etichette alimentari:
+   compare solo sulle intestazioni di sezione, mai nel testo corrente. */
+.etichetta {
+  font-family: var(--f-etichetta);
+  font-size: var(--t-mini);
   font-weight: 600;
-  letter-spacing: -.01em;
-  border-radius: var(--r-md);
-  border: 1px solid transparent;
-  padding: 12px 18px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: transform .06s ease, background-color .15s ease, border-color .15s ease;
-}
-.btn:active { transform: scale(.985); }
-.btn:disabled { opacity: .5; cursor: not-allowed; }
-
-.btn-primary { background: var(--accent); color: var(--accent-ink); }
-.btn-ghost { background: var(--surface); color: var(--ink); border-color: var(--rule); }
-.btn-quiet {
-  background: transparent; color: var(--muted); border-color: transparent;
-  padding: 8px 10px; font-weight: 500; font-size: 14px;
-}
-.btn-quiet:hover { color: var(--ink); }
-.btn-block { width: 100%; }
-.btn-lg { padding: 17px 22px; font-size: 17px; }
-
-/* ---------- home ---------- */
-.hero {
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-lg);
-  padding: 22px 20px;
-  box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.hero h1 {
-  margin: 0;
-  font-size: 25px;
-  line-height: 1.2;
-  letter-spacing: -.028em;
-  text-wrap: balance;
-}
-.hero p { margin: 0; color: var(--muted); font-size: 14.5px; }
-
-.manual {
-  display: flex;
-  gap: 8px;
-  align-items: stretch;
-}
-.manual input {
-  flex: 1;
-  min-width: 0;
-  font: inherit;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: .06em;
-  padding: 12px 14px;
-  border-radius: var(--r-md);
-  border: 1px solid var(--rule);
-  background: var(--ground);
-  color: var(--ink);
-}
-.manual input::placeholder { color: var(--muted); letter-spacing: .04em; }
-
-.section-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .12em;
+  letter-spacing: .13em;
   text-transform: uppercase;
-  color: var(--muted);
-  margin: 30px 0 10px;
+  color: var(--testo-3);
 }
 
-.recent { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.recent-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  text-align: left;
-  font: inherit;
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-md);
-  padding: 10px 12px;
-  cursor: pointer;
-  color: inherit;
-}
-.recent-thumb {
-  width: 42px; height: 42px; flex: none;
-  border-radius: var(--r-sm);
-  background: var(--surface-2);
-  object-fit: contain;
-}
-.recent-main { min-width: 0; flex: 1; }
-.recent-name {
-  font-weight: 600; font-size: 15px; letter-spacing: -.01em;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.recent-sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.num { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
 
-.empty {
-  color: var(--muted);
-  font-size: 14px;
-  border: 1px dashed var(--rule);
-  border-radius: var(--r-md);
-  padding: 18px;
-  text-align: center;
-}
-
-/* ---------- scanner ---------- */
-.scanner {
+/* ============ palco della fotocamera ============ */
+.palco {
   position: fixed;
   inset: 0;
-  background: #000;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
+  background: var(--nero);
+  overflow: hidden;
 }
-.scanner video {
+
+.palco video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: filter .45s ease, transform .45s ease;
 }
-.scanner-mask {
+
+.palco[data-congelato="true"] video {
+  filter: brightness(.42) saturate(.55) blur(1px);
+  transform: scale(1.03);
+}
+
+.palco-velo {
   position: absolute;
   inset: 0;
-  /* finestra di mira: il resto dell'inquadratura viene scurito */
-  background: rgba(0, 0, 0, .55);
-  -webkit-mask-image:
-    linear-gradient(#000, #000),
-    linear-gradient(#000, #000);
-  -webkit-mask-composite: xor;
-  mask-image:
-    linear-gradient(#000, #000),
-    linear-gradient(#000, #000);
-  mask-composite: exclude;
-  -webkit-mask-size: 100% 100%, min(84%, 420px) 190px;
-  mask-size: 100% 100%, min(84%, 420px) 190px;
-  -webkit-mask-position: center, center;
-  mask-position: center, center;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
+  background:
+    radial-gradient(120% 70% at 50% 42%, transparent 38%, rgba(8, 8, 10, .82) 100%),
+    linear-gradient(to bottom, rgba(8, 8, 10, .75), transparent 26%, transparent 52%, rgba(8, 8, 10, .9));
+  pointer-events: none;
 }
-.scanner-frame {
+
+/* ============ mirino ============ */
+.mirino {
   position: absolute;
-  top: 50%; left: 50%;
+  top: 38%;
+  left: 50%;
   transform: translate(-50%, -50%);
-  width: min(84%, 420px);
-  height: 190px;
-  border-radius: 14px;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, .9);
+  width: min(78vw, 330px);
+  aspect-ratio: 5 / 3;
+  pointer-events: none;
 }
-.scanner-frame::after {
+
+/* Scurisce tutto ciò che sta fuori dal riquadro: il codice si stacca dalla
+   confezione e si capisce dove puntare. Un'ombra enorme che parte dai bordi
+   del riquadro fa il lavoro senza un secondo elemento a schermo intero. */
+.mirino::before {
   content: "";
   position: absolute;
-  left: 10%; right: 10%; top: 50%;
-  height: 2px;
-  background: #FF4D4D;
-  box-shadow: 0 0 12px rgba(255, 77, 77, .9);
-  border-radius: 2px;
+  inset: 0;
+  border-radius: 14px;
+  box-shadow: 0 0 0 100vmax rgba(8, 8, 10, .5);
 }
-.scanner-bar {
-  position: relative;
-  z-index: 2;
+
+.mirino[data-dormiente="true"]::before { box-shadow: none; }
+
+.mirino i {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 2.5px solid rgba(255, 255, 255, .95);
+  border-radius: 3px;
+}
+.mirino i:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 10px; }
+.mirino i:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; border-top-right-radius: 10px; }
+.mirino i:nth-child(3) { bottom: 0; left: 0; border-right: 0; border-top: 0; border-bottom-left-radius: 10px; }
+.mirino i:nth-child(4) { bottom: 0; right: 0; border-left: 0; border-top: 0; border-bottom-right-radius: 10px; }
+
+.mirino b {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--accento), transparent);
+  box-shadow: 0 0 16px rgba(123, 123, 255, .8);
+  animation: passata 2.6s var(--molla) infinite;
+}
+
+@keyframes passata {
+  0%, 100% { top: 14%; opacity: 0; }
+  12% { opacity: 1; }
+  50% { top: 84%; opacity: 1; }
+  62% { opacity: 0; }
+}
+
+.palco[data-congelato="true"] .mirino { opacity: 0; transition: opacity .3s ease; }
+
+/* Prima che la fotocamera parta il mirino resta lì, spento: così quando si
+   accende non salta nulla di posto e si capisce subito dove va il codice. */
+.mirino[data-dormiente="true"] { opacity: .55; }
+.mirino[data-dormiente="true"] b { display: none; }
+
+/* Un codice a barre appena accennato dentro il riquadro: dice cosa
+   inquadrare senza bisogno di spiegarlo a parole. */
+.mirino[data-dormiente="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 26% 18%;
+  background-image: repeating-linear-gradient(90deg,
+    rgba(255, 255, 255, .7) 0 3px, transparent 3px 7px,
+    rgba(255, 255, 255, .7) 7px 9px, transparent 9px 15px,
+    rgba(255, 255, 255, .7) 15px 19px, transparent 19px 21px,
+    rgba(255, 255, 255, .7) 21px 24px, transparent 24px 31px);
+}
+
+/* ============ barra superiore ============ */
+.barra {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
-  color: #fff;
+  gap: var(--s3);
+  padding: calc(var(--s3) + env(safe-area-inset-top)) var(--s4) var(--s3);
+  z-index: 3;
 }
-.scanner-foot {
-  position: relative;
+
+.marchio {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: var(--t-piccolo);
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: rgba(255, 255, 255, .95);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, .8);
+}
+
+.marchio span {
+  display: block;
+  width: 15px;
+  height: 17px;
+  background-image: repeating-linear-gradient(90deg,
+    currentColor 0 2px, transparent 2px 4px,
+    currentColor 4px 5px, transparent 5px 8px,
+    currentColor 8px 10px, transparent 10px 11px,
+    currentColor 11px 13px, transparent 13px 15px);
+}
+
+.tondo {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .18);
+  background: rgba(20, 20, 26, .6);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font-family: var(--f-ui);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .16s ease, transform .1s ease;
+}
+.tondo:active { transform: scale(.93); }
+.tondo[aria-pressed="true"] { background: #fff; color: #111; border-color: #fff; }
+.gruppo-tondi { display: flex; gap: var(--s2); }
+
+/* ============ istruzione sotto il mirino ============ */
+.istruzione {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(38% + min(23.4vw, 99px) + 26px);
+  text-align: center;
+  padding: 0 var(--s5);
+  color: rgba(255, 255, 255, .92);
+  font-size: var(--t-piccolo);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, .95);
   z-index: 2;
-  margin-top: auto;
-  padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+/* ============ foglio che sale dal basso ============ */
+.foglio {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  background: var(--fondo);
+  border-radius: var(--r4) var(--r4) 0 0;
+  box-shadow: var(--ombra-alta);
+  border-top: 1px solid var(--bordo-forte);
+  display: flex;
+  flex-direction: column;
+  max-height: 94dvh;
+  transition: transform .42s var(--molla);
+  touch-action: pan-y;
+}
+
+.foglio[data-trascinamento="true"] { transition: none; }
+
+.maniglia {
+  flex: none;
+  padding: 10px 0 6px;
+  display: grid;
+  place-items: center;
+  cursor: grab;
+}
+.maniglia::before {
+  content: "";
+  width: 38px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--bordo-forte);
+}
+
+/* Il trascinamento verso il basso chiude il foglio, ma è un gesto che non si
+   vede: questo pulsante lo rende evidente e dà una via d'uscita anche da
+   tastiera. */
+.foglio-chiudi {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--bordo);
+  background: var(--rilievo);
+  color: var(--testo-2);
+  cursor: pointer;
+  z-index: 2;
+  transition: color .16s ease, background .16s ease;
+}
+.foglio-chiudi:hover { color: var(--testo); background: var(--scheda); }
+
+.foglio-corpo {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 var(--s4) calc(var(--s6) + env(safe-area-inset-bottom));
+}
+
+.foglio[data-stato="spia"] /* Il trascinamento verso il basso chiude il foglio, ma è un gesto che non si
+   vede: questo pulsante lo rende evidente e dà una via d'uscita anche da
+   tastiera. */
+.foglio-chiudi {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--bordo);
+  background: var(--rilievo);
+  color: var(--testo-2);
+  cursor: pointer;
+  z-index: 2;
+  transition: color .16s ease, background .16s ease;
+}
+.foglio-chiudi:hover { color: var(--testo); background: var(--scheda); }
+
+.foglio-corpo { overflow-y: hidden; }
+
+/* ============ striscia dei recenti (stato "spia") ============ */
+.spia { padding: 0 var(--s4) calc(var(--s4) + env(safe-area-inset-bottom)); }
+
+.spia-testa {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-bottom: var(--s3);
+}
+
+.striscia {
+  display: flex;
+  gap: var(--s2);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  margin: 0 calc(var(--s4) * -1);
+  padding: 0 var(--s4) var(--s2);
+  scrollbar-width: none;
+}
+.striscia::-webkit-scrollbar { display: none; }
+
+.tessera {
+  flex: none;
+  width: 132px;
+  scroll-snap-align: start;
+  background: var(--scheda);
+  border: 1px solid var(--bordo);
+  border-radius: var(--r2);
+  padding: var(--s2);
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  transition: border-color .16s ease, transform .1s ease;
+}
+.tessera:active { transform: scale(.97); }
+
+.tessera-foto {
+  width: 100%;
+  height: 62px;
+  border-radius: 6px;
+  background: var(--rilievo);
+  object-fit: contain;
+}
+
+.tessera-nome {
+  font-size: var(--t-piccolo);
+  font-weight: 600;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tessera-sotto {
+  font-size: var(--t-micro);
+  color: var(--testo-3);
+  font-family: var(--f-num);
+}
+
+.vuoto {
+  border: 1px dashed var(--bordo-forte);
+  border-radius: var(--r2);
+  padding: var(--s4);
+  text-align: center;
+  color: var(--testo-3);
+  font-size: var(--t-piccolo);
+}
+
+/* ============ scheda prodotto ============ */
+.scheda-testa {
+  display: flex;
+  gap: var(--s4);
+  align-items: flex-start;
+  padding-bottom: var(--s4);
+}
+
+.scheda-foto {
+  width: 82px;
+  height: 82px;
+  flex: none;
+  border-radius: var(--r2);
+  background: var(--rilievo);
+  border: 1px solid var(--bordo);
+  object-fit: contain;
+}
+
+.scheda-nome {
+  font-size: var(--t-grande);
+  font-weight: 700;
+  letter-spacing: -.025em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.scheda-marca {
+  margin-top: 5px;
+  font-size: var(--t-piccolo);
+  color: var(--testo-2);
+}
+
+.scheda-codice {
+  margin-top: var(--s2);
+  font-family: var(--f-num);
+  font-size: var(--t-micro);
+  letter-spacing: .1em;
+  color: var(--testo-3);
+}
+
+/* ============ verdetto in una riga ============ */
+.verdetto {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: var(--s3) 0 var(--s4);
+  border-top: 1px solid var(--bordo);
+}
+
+.gettone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-mini);
+  font-weight: 600;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: var(--rilievo);
+  color: var(--testo-2);
+  border: 1px solid transparent;
+}
+.gettone-alto { background: var(--alto-velo); color: var(--alto); }
+.gettone-medio { background: var(--medio-velo); color: var(--medio); }
+.gettone-basso { background: var(--basso-velo); color: var(--basso); }
+.gettone-nota { background: transparent; border-color: var(--bordo); color: var(--testo-3); }
+
+/* ============ blocco a righe, come sul retro della confezione ============ */
+.blocco {
+  border-top: 1px solid var(--bordo);
+  padding: var(--s4) 0;
+}
+.blocco > .etichetta { display: block; margin-bottom: var(--s3); }
+.blocco p { font-size: var(--t-base); line-height: 1.55; color: var(--testo); }
+
+.assente {
+  font-size: var(--t-piccolo);
+  color: var(--testo-3);
+  line-height: 1.5;
+}
+.assente strong { color: var(--testo-2); font-weight: 600; }
+
+/* ============ Nutri-Score ============ */
+.nutri {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+}
+
+.nutri-scala {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.nutri-scala span {
+  width: 26px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  font-family: var(--f-ui);
+  font-weight: 700;
+  font-size: var(--t-piccolo);
+  color: rgba(0, 0, 0, .45);
+  border-radius: 5px;
+  text-transform: uppercase;
+  opacity: .38;
+  transition: transform .3s var(--molla), opacity .3s ease;
+}
+
+.nutri-scala span[data-attivo="true"] {
+  opacity: 1;
+  width: 38px;
+  height: 44px;
+  font-size: var(--t-grande);
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--fondo), 0 0 0 4px currentColor;
+}
+.nutri-scala span[data-attivo="true"][data-lettera="c"] { color: #4A3A00; }
+
+.nutri-a { background: var(--ns-a); }
+.nutri-b { background: var(--ns-b); }
+.nutri-c { background: var(--ns-c); }
+.nutri-d { background: var(--ns-d); }
+.nutri-e { background: var(--ns-e); }
+
+.nutri-testo { font-size: var(--t-piccolo); color: var(--testo-2); line-height: 1.4; }
+
+/* ============ NOVA ============ */
+.nova { display: flex; align-items: center; gap: var(--s4); }
+
+.nova-barre { display: flex; gap: 4px; align-items: flex-end; height: 34px; }
+.nova-barre i {
+  width: 11px;
+  border-radius: 3px;
+  background: var(--rilievo);
+}
+.nova-barre i:nth-child(1) { height: 40%; }
+.nova-barre i:nth-child(2) { height: 60%; }
+.nova-barre i:nth-child(3) { height: 80%; }
+.nova-barre i:nth-child(4) { height: 100%; }
+.nova-barre i[data-pieno="true"] { background: var(--testo-2); }
+.nova-barre[data-gruppo="4"] i[data-pieno="true"] { background: var(--alto); }
+.nova-barre[data-gruppo="3"] i[data-pieno="true"] { background: var(--medio); }
+
+/* ============ semaforo nutrienti ============ */
+.semafori { display: flex; flex-direction: column; gap: var(--s4); }
+
+.sem {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3px var(--s3);
+  align-items: baseline;
+}
+
+.sem-nome { font-size: var(--t-piccolo); font-weight: 600; }
+
+.sem-valore {
+  font-family: var(--f-num);
+  font-size: var(--t-piccolo);
+  font-variant-numeric: tabular-nums;
+  color: var(--testo-2);
+}
+.sem-valore b { font-family: var(--f-ui); font-weight: 700; margin-left: 7px; }
+
+.sem-barra {
+  grid-column: 1 / -1;
+  position: relative;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--rilievo);
+  overflow: hidden;
+  margin-top: 3px;
+}
+
+.sem-barra u {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 4px;
+  transition: width .5s var(--molla);
+}
+
+/* Le tacche vanno sopra il riempimento: sotto sparivano proprio nei casi
+   in cui servono di più, cioè quando il valore è alto e copre la barra. */
+.sem-barra em {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--fondo);
+  opacity: .85;
+  z-index: 1;
+}
+
+.sem[data-livello="basso"] .sem-barra u { background: var(--basso); }
+.sem[data-livello="medio"] .sem-barra u { background: var(--medio); }
+.sem[data-livello="alto"] .sem-barra u { background: var(--alto); }
+.sem[data-livello="basso"] .sem-valore b { color: var(--basso); }
+.sem[data-livello="medio"] .sem-valore b { color: var(--medio); }
+.sem[data-livello="alto"] .sem-valore b { color: var(--alto); }
+.sem[data-livello="ignoto"] .sem-valore { color: var(--testo-3); }
+
+/* ============ tabella nutrizionale ============ */
+.tabella { width: 100%; border-collapse: collapse; }
+.tabella th, .tabella td {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--bordo);
+  text-align: left;
+  font-size: var(--t-piccolo);
+  font-weight: 400;
+}
+.tabella tr:last-child th, .tabella tr:last-child td { border-bottom: 0; }
+.tabella td {
+  text-align: right;
+  font-family: var(--f-num);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tabella .dentro th { padding-left: var(--s4); color: var(--testo-3); }
+
+/* ============ allergeni ============ */
+.allergeni { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.allergene {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--t-piccolo);
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: var(--r1);
+  background: var(--alto-velo);
+  color: var(--alto);
+}
+.allergene-traccia { background: var(--medio-velo); color: var(--medio); }
+
+/* ============ additivi ============ */
+.additivi { display: flex; flex-direction: column; gap: 9px; }
+.additivo { display: grid; grid-template-columns: 52px 1fr; gap: var(--s3); align-items: baseline; }
+.additivo dt { font-family: var(--f-num); font-size: var(--t-mini); color: var(--testo-3); }
+.additivo dd { margin: 0; font-size: var(--t-piccolo); color: var(--testo-2); }
+
+/* ============ bottoni ============ */
+.bottone {
+  font-family: var(--f-ui);
+  font-size: var(--t-base);
+  font-weight: 600;
+  border-radius: var(--r2);
+  border: 1px solid transparent;
+  padding: 14px 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  transition: transform .09s ease, background .16s ease;
+}
+.bottone:active { transform: scale(.985); }
+.bottone:disabled { opacity: .42; cursor: not-allowed; }
+.bottone-pieno { background: var(--accento); color: var(--su-accento); }
+.bottone-vuoto { background: var(--rilievo); color: var(--testo); border-color: var(--bordo); }
+.bottone-piatto {
+  background: none;
+  border: 0;
+  color: var(--testo-3);
+  font-size: var(--t-mini);
+  font-weight: 600;
+  padding: 6px 0;
+  cursor: pointer;
+}
+.bottone-piatto:hover { color: var(--testo); }
+.bottone-largo { width: 100%; }
+
+/* ============ stati ============ */
+.stato {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  color: #fff;
   text-align: center;
+  gap: var(--s3);
+  padding: var(--s6) var(--s4) var(--s7);
 }
-.scanner-hint { font-size: 14px; color: rgba(255, 255, 255, .82); max-width: 30ch; }
-.scanner-btn {
-  font: inherit;
-  font-weight: 600;
-  color: #fff;
-  background: rgba(255, 255, 255, .16);
-  border: 1px solid rgba(255, 255, 255, .28);
-  border-radius: 999px;
-  padding: 9px 16px;
-  cursor: pointer;
+.stato h2 { font-size: var(--t-medio); font-weight: 700; letter-spacing: -.02em; }
+.stato p { font-size: var(--t-piccolo); color: var(--testo-2); max-width: 33ch; line-height: 1.55; }
+.stato .num { font-size: var(--t-mini); letter-spacing: .1em; color: var(--testo-3); }
+.stato .bottone { margin-top: var(--s2); }
+
+.rotella {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2.5px solid var(--rilievo);
+  border-top-color: var(--accento);
+  animation: gira .7s linear infinite;
+}
+@keyframes gira { to { transform: rotate(360deg); } }
+
+/* ============ finestra codice a mano ============ */
+.velo {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(8, 8, 10, .72);
   backdrop-filter: blur(6px);
+  display: grid;
+  place-items: center;
+  padding: var(--s4);
 }
-.scanner-btn[aria-pressed="true"] { background: #fff; color: #111; }
-.scanner-error {
-  position: relative;
-  z-index: 2;
-  margin: auto 16px;
-  background: var(--surface);
-  color: var(--ink);
-  border-radius: var(--r-lg);
-  padding: 22px;
-  text-align: center;
+
+.finestra {
+  width: min(100%, 380px);
+  background: var(--fondo);
+  border: 1px solid var(--bordo-forte);
+  border-radius: var(--r3);
+  padding: var(--s5);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--s3);
 }
-.scanner-error h2 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
-.scanner-error p { margin: 0; font-size: 14.5px; color: var(--muted); }
+.finestra h2 { font-size: var(--t-medio); font-weight: 700; letter-spacing: -.02em; }
+.finestra p { font-size: var(--t-piccolo); color: var(--testo-2); }
 
-/* ---------- scheda prodotto ---------- */
-.pv { display: flex; flex-direction: column; gap: 16px; padding-bottom: 8px; }
-
-.pv-head { display: flex; gap: 14px; align-items: flex-start; }
-.pv-photo {
-  width: 92px; height: 92px; flex: none;
-  border-radius: var(--r-md);
-  background: var(--surface-2);
-  object-fit: contain;
-  border: 1px solid var(--rule);
+.campo {
+  width: 100%;
+  font-family: var(--f-num);
+  font-size: var(--t-grande);
+  letter-spacing: .12em;
+  text-align: center;
+  padding: var(--s3);
+  border-radius: var(--r2);
+  border: 1px solid var(--bordo-forte);
+  background: var(--nero);
+  color: var(--testo);
 }
-.pv-title { margin: 0; font-size: 21px; line-height: 1.22; letter-spacing: -.025em; text-wrap: balance; }
-.pv-brand { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
-.pv-code { margin: 8px 0 0; font-size: 12px; color: var(--muted); letter-spacing: .08em; }
+.campo::placeholder { color: var(--testo-3); letter-spacing: .08em; font-size: var(--t-medio); }
 
-.badges { display: flex; flex-wrap: wrap; gap: 8px; }
-
-.nutri {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: var(--surface); border: 1px solid var(--rule);
-  border-radius: var(--r-md); padding: 7px 12px 7px 8px;
-}
-.nutri-letter {
-  width: 26px; height: 26px; border-radius: 6px;
-  display: grid; place-items: center;
-  font-weight: 800; font-size: 15px; color: #fff; text-transform: uppercase;
-}
-.nutri-a { background: var(--nutri-a); }
-.nutri-b { background: var(--nutri-b); }
-.nutri-c { background: var(--nutri-c); color: #3A2C00; }
-.nutri-d { background: var(--nutri-d); }
-.nutri-e { background: var(--nutri-e); }
-.nutri-txt { display: flex; flex-direction: column; line-height: 1.2; }
-.nutri-txt b { font-size: 13px; font-weight: 600; }
-.nutri-txt span { font-size: 11.5px; color: var(--muted); }
-
-.chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 13px; font-weight: 500;
-  padding: 6px 11px; border-radius: 999px;
-  background: var(--surface); border: 1px solid var(--rule); color: var(--ink-soft);
-}
-.chip-ok { background: var(--ok-bg); border-color: transparent; color: var(--ok); }
-.chip-warn { background: var(--warn-bg); border-color: transparent; color: var(--warn); }
-.chip-bad { background: var(--bad-bg); border-color: transparent; color: var(--bad); }
-.chip-accent { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-lg);
-  padding: 16px 18px;
-}
-.card h3 {
-  margin: 0 0 10px;
-  font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--muted);
-}
-.card p { margin: 0; font-size: 15px; line-height: 1.55; color: var(--ink-soft); }
-.card + .card { margin-top: 0; }
-
-.missing {
-  display: flex; align-items: flex-start; gap: 10px;
-  font-size: 14px; color: var(--muted); font-style: italic;
-}
-
-.nutri-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
-.nutri-table th, .nutri-table td { padding: 9px 0; border-bottom: 1px solid var(--rule-soft); text-align: left; }
-.nutri-table tr:last-child th, .nutri-table tr:last-child td { border-bottom: 0; }
-.nutri-table th { font-weight: 500; color: var(--ink-soft); }
-.nutri-table td {
-  text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink);
-}
-.nutri-table .sub th { padding-left: 16px; color: var(--muted); font-size: 13.5px; }
-
-.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
-.list li { font-size: 14.5px; color: var(--ink-soft); display: flex; gap: 8px; align-items: baseline; }
-.list .e { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: var(--muted); flex: none; min-width: 44px; }
-
-.notice {
-  border-radius: var(--r-md);
-  padding: 13px 15px;
-  font-size: 14px;
-  line-height: 1.5;
-}
-.notice-info { background: var(--accent-soft); color: var(--ink-soft); }
-.notice-warn { background: var(--warn-bg); color: var(--warn); }
-
-.source {
-  font-size: 12.5px;
-  color: var(--muted);
+/* ============ fonte e avvertenza ============ */
+.fonte {
+  border-top: 1px solid var(--bordo);
+  padding-top: var(--s3);
+  margin-top: var(--s2);
+  font-size: var(--t-mini);
+  color: var(--testo-3);
   line-height: 1.6;
-  padding-top: 4px;
 }
-.source a { color: var(--muted); }
+.fonte a { color: var(--testo-2); }
 
-/* ---------- stati ---------- */
-.state {
-  display: flex; flex-direction: column; align-items: center; gap: 14px;
-  text-align: center; padding: 44px 12px;
+.avvertenza {
+  margin-top: var(--s3);
+  font-size: var(--t-micro);
+  line-height: 1.6;
+  color: var(--testo-3);
 }
-.state h2 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
-.state p { margin: 0; color: var(--muted); font-size: 15px; max-width: 34ch; }
-.state .code { font-size: 13px; letter-spacing: .1em; color: var(--ink-soft); }
 
-.spinner {
-  width: 26px; height: 26px; border-radius: 50%;
-  border: 2.5px solid var(--rule);
-  border-top-color: var(--accent);
-  animation: spin .7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .spinner { animation-duration: 2s; }
-  .btn:active { transform: none; }
+  .mirino b { animation: none; opacity: .9; top: 50%; }
+  .rotella { animation-duration: 2.4s; }
+  .foglio { transition-duration: .01s; }
+  .bottone:active, .tondo:active, .tessera:active { transform: none; }
 }
 
-.disclaimer {
-  margin-top: 26px;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--muted);
-  border-top: 1px solid var(--rule);
-  padding-top: 14px;
+/* ============ schermata di avvio, prima del permesso ============ */
+.avvio {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 56%;
+  padding: 0 var(--s5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--s3);
+  z-index: 2;
 }
+
+.avvio h1 {
+  font-size: var(--t-grande);
+  font-weight: 700;
+  letter-spacing: -.03em;
+  line-height: 1.1;
+  max-width: 14ch;
+  text-wrap: balance;
+}
+
+.avvio p {
+  font-size: var(--t-piccolo);
+  color: var(--testo-2);
+  max-width: 32ch;
+  line-height: 1.55;
+}
+
+.avvio .bottone { margin-top: var(--s2); }

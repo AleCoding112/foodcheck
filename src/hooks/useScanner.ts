@@ -5,13 +5,18 @@ import { normalizeBarcode } from '../lib/barcode'
 
 export type StatoScanner = 'spento' | 'avvio' | 'attivo' | 'errore'
 
-export type MotivoErrore = 'permesso' | 'nessuna-fotocamera' | 'contesto-non-sicuro' | 'occupata' | 'generico'
+export type MotivoErrore =
+  | 'permesso'
+  | 'nessuna-fotocamera'
+  | 'contesto-non-sicuro'
+  | 'occupata'
+  | 'lettura-non-avviata'
+  | 'generico'
 
 export interface Scanner {
   videoRef: React.RefObject<HTMLVideoElement | null>
   stato: StatoScanner
   errore?: MotivoErrore
-  /** Quale decodificatore sta lavorando: utile in fase di collaudo. */
   motore?: 'nativo' | 'zxing'
   torciaDisponibile: boolean
   torciaAccesa: boolean
@@ -20,9 +25,8 @@ export interface Scanner {
 
 const FORMATI_NATIVI = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'itf', 'code_128']
 
-/** ZXing pesa mezzo megabyte: si scarica solo se il browser non sa leggere
- *  i codici da solo, cioe' in pratica solo su iPhone. Su Android l'utente
- *  non paga quel peso. */
+/** ZXing pesa mezzo megabyte: si scarica solo se il browser non sa leggere i
+ *  codici da solo, cioè in pratica solo su iPhone. */
 async function caricaZxing() {
   const [browser, library] = await Promise.all([import('@zxing/browser'), import('@zxing/library')])
   const hints = new Map()
@@ -47,18 +51,19 @@ function classificaErrore(err: unknown): MotivoErrore {
 }
 
 /**
- * Gestisce fotocamera e decodifica.
+ * Fotocamera e decodifica, con due cicli di vita distinti.
+ *
+ * Il flusso video si apre una volta sola e resta aperto: riaprirlo a ogni
+ * scansione costa un secondo buono e fa lampeggiare lo schermo. La decodifica
+ * invece si ferma appena un prodotto viene trovato — mentre leggi la scheda
+ * non ha senso continuare a macinare fotogrammi, e la batteria ringrazia.
  *
  * Due precauzioni contro le letture sbagliate, che a scaffale capitano spesso:
- * il codice deve superare la cifra di controllo, e deve essere letto due volte
- * di fila uguale prima di essere accettato. Costa qualche decimo di secondo e
- * evita di aprire la scheda del prodotto sbagliato.
+ * il codice deve superare la cifra di controllo e va letto due volte uguale.
  */
-export function useScanner(attivo: boolean, onCodice: (codice: string) => void): Scanner {
+export function useScanner(acceso: boolean, inPausa: boolean, onCodice: (codice: string) => void): Scanner {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const controlsRef = useRef<IScannerControls | null>(null)
-  const loopRef = useRef<number | null>(null)
   const ultimaLettura = useRef<{ codice: string; quando: number } | null>(null)
   const consegnato = useRef(false)
   const onCodiceRef = useRef(onCodice)
@@ -96,19 +101,17 @@ export function useScanner(attivo: boolean, onCodice: (codice: string) => void):
       .catch(() => setTorciaDisponibile(false))
   }, [torciaAccesa])
 
+  // 1. Il flusso video: si apre quando l'app accende la fotocamera e resta.
   useEffect(() => {
-    if (!attivo) return
-
+    if (!acceso) return
     let annullato = false
-    consegnato.current = false
-    ultimaLettura.current = null
 
     async function avvia() {
       setStato('avvio')
       setErrore(undefined)
 
-      // La fotocamera richiede una connessione sicura. In locale 127.0.0.1 vale
-      // come sicura; da telefono su rete di casa serve HTTPS.
+      // La fotocamera richiede una connessione sicura: localhost va bene,
+      // un indirizzo di rete locale in chiaro no.
       if (typeof window !== 'undefined' && !window.isSecureContext) {
         setErrore('contesto-non-sicuro')
         setStato('errore')
@@ -123,11 +126,7 @@ export function useScanner(attivo: boolean, onCodice: (codice: string) => void):
       let stream: MediaStream
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
           audio: false,
         })
       } catch (err) {
@@ -148,19 +147,50 @@ export function useScanner(attivo: boolean, onCodice: (codice: string) => void):
       video.srcObject = stream
       video.setAttribute('playsinline', 'true')
       video.muted = true
-      try {
-        await video.play()
-      } catch {
-        /* alcuni browser rifiutano il play automatico: la ripresa parte comunque */
-      }
+      // Volutamente senza await: la promessa di play() in certe condizioni non
+      // si risolve mai, e aspettarla lasciava l'app ferma su "accendo la
+      // fotocamera" per sempre. L'immagine parte lo stesso, e il ciclo di
+      // lettura controlla comunque che ci siano fotogrammi pronti.
+      void video.play().catch(() => undefined)
 
       const track = stream.getVideoTracks()[0]
-      const capacita = track?.getCapabilities?.()
-      setTorciaDisponibile(Boolean(capacita?.torch))
+      setTorciaDisponibile(Boolean(track?.getCapabilities?.()?.torch))
+      if (!annullato) setStato('attivo')
+    }
 
-      if (annullato) return
-      setStato('attivo')
+    avvia()
 
+    return () => {
+      annullato = true
+      streamRef.current?.getTracks().forEach((t) => t.stop())
+      streamRef.current = null
+      const video = videoRef.current
+      if (video) video.srcObject = null
+      setStato('spento')
+      setTorciaAccesa(false)
+      setTorciaDisponibile(false)
+      setMotore(undefined)
+    }
+  }, [acceso])
+
+  // 2. L'immagine si congela mentre leggi la scheda, e riparte quando chiudi.
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || stato !== 'attivo') return
+    if (inPausa) video.pause()
+    else void video.play().catch(() => undefined)
+  }, [inPausa, stato])
+
+  // 3. La decodifica: parte solo mentre si sta davvero cercando un codice.
+  useEffect(() => {
+    if (stato !== 'attivo' || inPausa) return
+    let annullato = false
+    let attesa: number | null = null
+    let controls: IScannerControls | null = null
+    consegnato.current = false
+    ultimaLettura.current = null
+
+    async function decodifica() {
       const nativo = typeof window !== 'undefined' && 'BarcodeDetector' in window
       if (nativo) {
         try {
@@ -168,6 +198,7 @@ export function useScanner(attivo: boolean, onCodice: (codice: string) => void):
           const formats = FORMATI_NATIVI.filter((f) => supportati.includes(f))
           if (formats.length === 0) throw new Error('nessun formato utile')
           const detector = new BarcodeDetector({ formats })
+          if (annullato) return
           setMotore('nativo')
 
           const passo = async () => {
@@ -178,10 +209,10 @@ export function useScanner(attivo: boolean, onCodice: (codice: string) => void):
                 const trovati = await detector.detect(v)
                 for (const t of trovati) proponi(t.rawValue)
               } catch {
-                /* un fotogramma illeggibile non e' un problema: si riprova */
+                /* un fotogramma illeggibile non è un problema: si riprova */
               }
             }
-            loopRef.current = window.setTimeout(passo, 140)
+            attesa = window.setTimeout(passo, 140)
           }
           passo()
           return
@@ -190,41 +221,34 @@ export function useScanner(attivo: boolean, onCodice: (codice: string) => void):
         }
       }
 
-      // Ripiego universale, usato in pratica su iPhone.
       try {
         const reader = await caricaZxing()
-        if (annullato) return
+        const video = videoRef.current
+        if (annullato || !video) return
         setMotore('zxing')
-        controlsRef.current = await reader.decodeFromVideoElement(video, (risultato) => {
+        controls = await reader.decodeFromVideoElement(video, (risultato) => {
           if (risultato) proponi(risultato.getText())
         })
-      } catch (err) {
+        if (annullato) controls.stop()
+      } catch {
         if (annullato) return
-        setErrore(classificaErrore(err))
+        // Qui l'errore riguarda il decodificatore, non il permesso: la
+        // fotocamera sta già funzionando. Attribuirlo al permesso, come
+        // succedeva prima, manda l'utente a cercare un'impostazione che è
+        // già a posto.
+        setErrore('lettura-non-avviata')
         setStato('errore')
       }
     }
 
-    avvia()
+    decodifica()
 
     return () => {
       annullato = true
-      if (loopRef.current !== null) {
-        clearTimeout(loopRef.current)
-        loopRef.current = null
-      }
-      controlsRef.current?.stop()
-      controlsRef.current = null
-      streamRef.current?.getTracks().forEach((t) => t.stop())
-      streamRef.current = null
-      const video = videoRef.current
-      if (video) video.srcObject = null
-      setStato('spento')
-      setTorciaAccesa(false)
-      setTorciaDisponibile(false)
-      setMotore(undefined)
+      if (attesa !== null) clearTimeout(attesa)
+      controls?.stop()
     }
-  }, [attivo, proponi])
+  }, [stato, inPausa, proponi])
 
   return { videoRef, stato, errore, motore, torciaDisponibile, torciaAccesa, commutaTorcia }
 }
