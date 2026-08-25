@@ -1,0 +1,545 @@
+<title>FoodCheck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --ground:#F5F5F9;
+  --surface:#FFFFFF;
+  --surface-2:#EEEEF4;
+  --ink:#15151C;
+  --ink-soft:#3C3C4A;
+  --muted:#63636F;
+  --rule:#DCDCE6;
+  --rule-soft:#E8E8F0;
+  --accent:#2E36C9;
+  --accent-soft:#E5E6FA;
+  --ok:#1F7A4C;
+  --ok-bg:#E2F1E8;
+  --warn:#8A6410;
+  --warn-bg:#F6EDD8;
+  --bad:#B32D1E;
+  --bad-bg:#F8E4E1;
+  --shadow:0 1px 2px rgba(21,21,28,.05), 0 8px 24px -12px rgba(21,21,28,.18);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E0E14;
+    --surface:#16161E;
+    --surface-2:#1D1D27;
+    --ink:#EDEDF3;
+    --ink-soft:#C6C6D4;
+    --muted:#9494A6;
+    --rule:#2A2A36;
+    --rule-soft:#22222D;
+    --accent:#9096FF;
+    --accent-soft:#23244A;
+    --ok:#5FC28C;
+    --ok-bg:#16301F;
+    --warn:#D9AE55;
+    --warn-bg:#33280F;
+    --bad:#F08D7E;
+    --bad-bg:#3A1B16;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E0E14;
+  --surface:#16161E;
+  --surface-2:#1D1D27;
+  --ink:#EDEDF3;
+  --ink-soft:#C6C6D4;
+  --muted:#9494A6;
+  --rule:#2A2A36;
+  --rule-soft:#22222D;
+  --accent:#9096FF;
+  --accent-soft:#23244A;
+  --ok:#5FC28C;
+  --ok-bg:#16301F;
+  --warn:#D9AE55;
+  --warn-bg:#33280F;
+  --bad:#F08D7E;
+  --bad-bg:#3A1B16;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"Source Serif 4",Georgia,"Times New Roman",serif;
+  font-size:17px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:820px;margin:0 auto;padding:0 24px 96px}
+
+h1,h2,h3,.mono,.eyebrow,th,.pill,.num{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,.eyebrow,.code,code,.num{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+
+.eyebrow{
+  font-size:11.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin:0;
+}
+
+/* ---------- header ---------- */
+header{padding:72px 0 0}
+h1{
+  font-size:clamp(44px,8vw,72px);font-weight:700;letter-spacing:-.035em;
+  margin:14px 0 0;line-height:.98;text-wrap:balance;
+}
+.lede{
+  font-size:clamp(19px,2.6vw,23px);line-height:1.45;color:var(--ink-soft);
+  margin:20px 0 0;max-width:34ch;text-wrap:balance;
+}
+.barcode{
+  height:38px;margin:34px 0 0;
+  background-image:repeating-linear-gradient(90deg,
+    var(--ink) 0 2px, transparent 2px 5px,
+    var(--ink) 5px 6px, transparent 6px 11px,
+    var(--ink) 11px 14px, transparent 14px 15px,
+    var(--ink) 15px 18px, transparent 18px 23px,
+    var(--ink) 23px 24px, transparent 24px 27px);
+  opacity:.72;
+  -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 58%,transparent 100%);
+  mask-image:linear-gradient(90deg,#000 0%,#000 58%,transparent 100%);
+}
+.barcode-num{margin:7px 0 0;font-size:11px;letter-spacing:.34em;color:var(--muted)}
+
+/* ---------- decisions strip ---------- */
+.decisions{
+  display:flex;flex-wrap:wrap;gap:8px;margin:38px 0 0;
+}
+.pill{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:12.5px;font-weight:500;letter-spacing:-.005em;
+  padding:6px 12px;border-radius:999px;
+  background:var(--surface);border:1px solid var(--rule);color:var(--ink-soft);
+}
+.pill b{font-weight:600;color:var(--ink)}
+.pill::before{
+  content:"";width:5px;height:5px;border-radius:50%;background:var(--accent);flex:none;
+}
+
+/* ---------- sections ---------- */
+section{margin:64px 0 0;scroll-margin-top:24px}
+.sec-head{
+  display:flex;align-items:baseline;gap:14px;
+  padding-bottom:12px;border-bottom:1px solid var(--rule);margin-bottom:26px;
+}
+.sec-head .idx{
+  font-size:11.5px;font-weight:500;color:var(--accent);letter-spacing:.1em;flex:none;
+}
+h2{font-size:26px;font-weight:600;letter-spacing:-.022em;margin:0;line-height:1.2}
+h3{font-size:17.5px;font-weight:600;letter-spacing:-.012em;margin:32px 0 8px}
+p{margin:0 0 16px}
+p:last-child{margin-bottom:0}
+strong{font-weight:600}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+
+ul{margin:0 0 16px;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+ul li{position:relative;padding-left:20px}
+ul li::before{
+  content:"";position:absolute;left:2px;top:.72em;
+  width:7px;height:1.5px;background:var(--muted);
+}
+code{
+  font-size:.86em;background:var(--surface-2);border:1px solid var(--rule-soft);
+  padding:1px 5px;border-radius:4px;color:var(--ink-soft);white-space:nowrap;
+}
+
+/* ---------- evidence cards ---------- */
+.evidence{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.ev{
+  background:var(--surface);border:1px solid var(--rule);border-radius:10px;
+  padding:18px 18px 16px;box-shadow:var(--shadow);
+}
+.ev .num{
+  display:block;font-size:30px;font-weight:600;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;line-height:1.05;color:var(--ink);
+}
+.ev .cap{display:block;margin-top:8px;font-size:13.5px;line-height:1.45;color:var(--muted);font-family:Archivo,sans-serif}
+.ev.flag .num{color:var(--warn)}
+
+/* ---------- chain ---------- */
+.chain{display:flex;flex-direction:column;gap:0;margin:8px 0 20px}
+.step{
+  display:grid;grid-template-columns:34px 1fr;gap:14px;align-items:start;
+  padding:13px 0;border-bottom:1px dashed var(--rule);
+}
+.step:last-child{border-bottom:0}
+.step .k{
+  font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.06em;
+  padding-top:4px;font-variant-numeric:tabular-nums;
+}
+.step .t{font-family:Archivo,sans-serif;font-size:15.5px;font-weight:600;letter-spacing:-.01em;margin:0}
+.step .d{font-size:14.5px;color:var(--muted);margin:3px 0 0;line-height:1.5}
+.step.terminal .t{color:var(--accent)}
+
+/* ---------- verdict scale ---------- */
+.verdicts{display:grid;gap:10px;margin:6px 0 18px}
+.v{
+  display:grid;grid-template-columns:104px 1fr;gap:16px;align-items:center;
+  padding:12px 14px;border-radius:8px;border:1px solid var(--rule);background:var(--surface);
+}
+.v .lab{
+  font-family:Archivo,sans-serif;font-size:12px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;text-align:center;padding:5px 6px;border-radius:5px;
+}
+.v .txt{font-size:15px;line-height:1.5;color:var(--ink-soft)}
+.v-bad .lab{background:var(--bad-bg);color:var(--bad)}
+.v-warn .lab{background:var(--warn-bg);color:var(--warn)}
+.v-unk .lab{background:var(--surface-2);color:var(--muted)}
+.v-ok .lab{background:var(--ok-bg);color:var(--ok)}
+
+/* ---------- phases ---------- */
+.phase{
+  display:grid;grid-template-columns:64px 1fr;gap:20px;
+  padding:24px 0;border-top:1px solid var(--rule-soft);
+}
+.phase:first-of-type{border-top:0;padding-top:6px}
+.phase .marker{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;
+  color:var(--accent);letter-spacing:.04em;padding-top:3px;
+}
+.phase h3{margin:0 0 6px;font-size:19px}
+.phase .out{
+  margin-top:12px;padding:10px 13px;background:var(--accent-soft);
+  border-radius:7px;font-size:14.5px;line-height:1.5;color:var(--ink-soft);
+}
+.phase .out b{font-family:Archivo,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:3px}
+.phase.later{opacity:.72}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;border:1px solid var(--rule);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:520px}
+th{
+  text-align:left;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:12px 16px;border-bottom:1px solid var(--rule);white-space:nowrap;
+}
+td{padding:13px 16px;border-bottom:1px solid var(--rule-soft);vertical-align:top;line-height:1.5}
+tr:last-child td{border-bottom:0}
+td.n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sev{
+  display:inline-block;font-family:Archivo,sans-serif;font-size:10.5px;font-weight:700;
+  letter-spacing:.07em;text-transform:uppercase;padding:3px 8px;border-radius:4px;
+}
+.s-crit{background:var(--bad-bg);color:var(--bad)}
+.s-alto{background:var(--warn-bg);color:var(--warn)}
+.s-medio{background:var(--surface-2);color:var(--muted)}
+.free{color:var(--ok);font-weight:600}
+
+/* ---------- callout ---------- */
+.note{
+  border-left:2px solid var(--accent);padding:2px 0 2px 18px;margin:22px 0;
+  color:var(--ink-soft);font-size:16px;
+}
+.warnbox{
+  background:var(--bad-bg);border:1px solid color-mix(in srgb,var(--bad) 28%,transparent);
+  border-radius:10px;padding:18px 20px;margin:22px 0;
+}
+.warnbox p{font-size:15.5px;color:var(--ink-soft)}
+.warnbox .eyebrow{color:var(--bad);margin-bottom:8px}
+
+/* ---------- close ---------- */
+.close{
+  margin-top:56px;padding:30px 0 0;border-top:2px solid var(--ink);
+}
+.close h2{font-size:22px}
+footer{
+  margin-top:56px;padding-top:20px;border-top:1px solid var(--rule);
+  font-size:12.5px;color:var(--muted);line-height:1.6;
+}
+footer .mono{font-size:11.5px;letter-spacing:.04em}
+
+@media (max-width:620px){
+  body{font-size:16px}
+  .wrap{padding:0 18px 72px}
+  header{padding-top:48px}
+  .phase{grid-template-columns:1fr;gap:8px}
+  .phase .marker{padding-top:0}
+  .v{grid-template-columns:1fr;gap:8px}
+  .v .lab{justify-self:start;padding:4px 10px}
+  .step{grid-template-columns:26px 1fr;gap:10px}
+}
+@media (prefers-reduced-motion:no-preference){
+  a{transition:opacity .15s ease}
+}
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Piano di progetto · 25 agosto 2026</p>
+  <h1>FoodCheck</h1>
+  <p class="lede">Scansiona un codice a barre, sappi cosa stai per mangiare. A costo zero, davvero.</p>
+  <div class="barcode" role="presentation"></div>
+  <p class="barcode-num mono">3 017620 422003</p>
+
+  <div class="decisions">
+    <span class="pill"><b>Web app / PWA</b></span>
+    <span class="pill">Dati utente <b>solo sul dispositivo</b></span>
+    <span class="pill"><b>Open source</b> su GitHub</span>
+    <span class="pill">Fallback <b>multi-fonte</b></span>
+  </div>
+</header>
+
+<section>
+  <div class="sec-head"><span class="idx mono">01</span><h2>Il verdetto</h2></div>
+  <p><strong>Si può fare, e si può fare gratis sul serio</strong> — non “gratis con un piano a pagamento più avanti”. I due pezzi che di solito costano sono la lettura del codice e il database dei prodotti: il primo è una libreria open source, il secondo è <strong>Open Food Facts</strong>, un database alimentare collaborativo con licenza aperta, API pubblica, nessuna chiave, nessun contratto commerciale.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Voce</th><th>Soluzione</th><th>Costo</th></tr></thead>
+      <tbody>
+        <tr><td>Lettura codice a barre</td><td>API nativa del browser, con fallback WebAssembly</td><td class="n free">0 €</td></tr>
+        <tr><td>Database prodotti</td><td>Open Food Facts (licenza ODbL)</td><td class="n free">0 €</td></tr>
+        <tr><td>Hosting e dominio tecnico</td><td>GitHub Pages o Netlify, HTTPS incluso</td><td class="n free">0 €</td></tr>
+        <tr><td>Server e database utenti</td><td>Non esistono: tutto resta sul telefono</td><td class="n free">0 €</td></tr>
+        <tr><td>Pubblicazione</td><td>PWA installabile dal browser, nessuno store</td><td class="n free">0 €</td></tr>
+        <tr><td>Dominio personalizzato</td><td>Facoltativo, solo estetica</td><td class="n">~10 €/anno</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p style="margin-top:20px">La scelta della PWA non è un ripiego: evita i 99 $/anno dell'account sviluppatore Apple, evita le revisioni degli store, e ti fa avere l'app sul telefono nel giro di giorni invece che di settimane.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="idx mono">02</span><h2>Cosa ho verificato prima di scrivere questo piano</h2></div>
+  <p>Ho interrogato l'API vera, non la documentazione. Tre risultati contano.</p>
+
+  <div class="evidence">
+    <div class="ev">
+      <span class="num">155 ms</span>
+      <span class="cap">Risposta per il barcode della Nutella: nome, ingredienti <em>in italiano</em>, allergeni già etichettati (latte, frutta a guscio, soia), Nutri-Score E, gruppo NOVA 4, additivo E322, foto. Senza chiave API.</span>
+    </div>
+    <div class="ev">
+      <span class="num">269.889</span>
+      <span class="cap">Prodotti censiti per l'Italia. Una base di partenza solida sui marchi grandi.</span>
+    </div>
+    <div class="ev flag">
+      <span class="num">62,5 %</span>
+      <span class="cap">Prodotti italiani <strong>senza</strong> Nutri-Score calcolato: 168.713 su 269.889. È il vero limite del progetto.</span>
+    </div>
+  </div>
+
+  <div class="warnbox">
+    <p class="eyebrow">Il problema non è la tecnologia, sono i dati</p>
+    <p>Su due prodotti italiani presi a caso, per più di uno mancherà il punteggio nutrizionale, e su molti mancheranno del tutto gli ingredienti. Le private label dei supermercati e i prodotti locali sono i più scoperti. <strong>Questo determina metà delle decisioni di progetto</strong>: l'app deve essere onesta quando non sa, non deve mai riempire i buchi con stime silenziose, e deve dare all'utente un modo per aggiungere ciò che manca.</p>
+  </div>
+
+  <p>Terza scoperta, fatta sbattendoci contro: l'endpoint di <em>ricerca</em> di Open Food Facts mi ha bloccato dopo poche chiamate ravvicinate (circa 10 al minuto; la lettura per codice a barre è molto più generosa). Non è un ostacolo, ma impone una regola architetturale precisa fin dal primo giorno: <strong>cache locale aggressiva e nessuna chiamata di ricerca automatica</strong>.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="idx mono">03</span><h2>Le tre cose che l'app fa</h2></div>
+  <p>Tre funzioni, non trenta. Ognuna deve funzionare bene prima che si passi alla successiva.</p>
+
+  <h3>1 · Cosa sto mangiando</h3>
+  <p>Inquadro il codice a barre e ottengo la scheda: ingredienti, tabella nutrizionale per 100 g, Nutri-Score, gruppo NOVA (quanto è ultra-processato), additivi con il loro nome vero e non solo la sigla E-qualcosa, presenza di olio di palma, etichette (bio, senza glutine, DOP).</p>
+
+  <h3>2 · Posso mangiarlo io</h3>
+  <p>Il cuore dell'app. Imposto una volta il mio profilo — allergie, intolleranze, dieta — e da lì in poi ogni scansione mi risponde con un semaforo in cima alla schermata, prima ancora che io legga gli ingredienti. È anche la funzione più delicata, e ha una sezione tutta sua qui sotto.</p>
+
+  <h3>3 · Cosa ho in casa</h3>
+  <p>Quello che scansiono può finire in dispensa con quantità, posizione (frigo, dispensa, freezer) e data di scadenza. L'app mi apre con l'elenco di ciò che sta per scadere. È la funzione che fa aprire l'app anche quando non sei al supermercato.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="idx mono">04</span><h2>Come l'app trova un prodotto</h2></div>
+  <p>Hai scelto il fallback multi-fonte: l'app non si arrende alla prima fonte che non sa rispondere. La catena è questa, e si ferma al primo risultato utile.</p>
+
+  <div class="chain">
+    <div class="step"><span class="k mono">01</span><div><p class="t">Cache locale</p><p class="d">Già scansionato in passato? Risposta immediata, funziona anche senza rete. Ogni prodotto risolto viene conservato sul dispositivo con una scadenza di rinfresco.</p></div></div>
+    <div class="step"><span class="k mono">02</span><div><p class="t">Open Food Facts</p><p class="d">La fonte principale. Alimenti e bevande, ottima su ingredienti e allergeni.</p></div></div>
+    <div class="step"><span class="k mono">03</span><div><p class="t">I progetti gemelli</p><p class="d">Open Beauty Facts, Open Pet Food Facts, Open Products Facts. Servono a rispondere “questo non è un alimento, è un detersivo” invece di dire “non trovato”.</p></div></div>
+    <div class="step"><span class="k mono">04</span><div><p class="t">USDA FoodData Central</p><p class="d">Copertura buona sui prodotti statunitensi, scarsa sull'Italia. Chiave gratuita richiesta. Da valutare: probabilmente vale poco per il tuo mercato, lo teniamo come opzione e non come promessa.</p></div></div>
+    <div class="step terminal"><span class="k mono">05</span><div><p class="t">Prodotto sconosciuto → lo aggiungi tu</p><p class="d">Schermata onesta, non un errore. Nome, marca, foto dell'etichetta, ingredienti: il prodotto entra nel tuo archivio locale e da lì in poi è tuo. In prospettiva, il contributo può tornare anche a Open Food Facts e migliorare il database per tutti.</p></div></div>
+  </div>
+
+  <p class="note">Una scorciatoia utile che sfrutteremo: le prime cifre di un codice EAN-13 dicono in quale paese è stato registrato il produttore (80–83 significa Italia). Non identifica il prodotto, ma permette di dare un'informazione sensata anche quando non sappiamo altro.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="idx mono">05</span><h2>Il motore allergeni, ovvero la parte da non sbagliare</h2></div>
+  <p>Se questa app dice “puoi mangiarlo” a chi è celiaco o allergico alle arachidi e sbaglia, il danno non è un bug: è una persona che sta male. Questa funzione va progettata con una regola sopra tutte — <strong>l'app deve poter dire “non lo so”</strong>, e deve dirlo spesso.</p>
+
+  <h3>Tre livelli di controllo, non uno</h3>
+  <ul>
+    <li><strong>Le etichette del database.</strong> Open Food Facts fornisce allergeni e tracce già strutturati. Ottimo punto di partenza, ma dipende da chi ha inserito il prodotto.</li>
+    <li><strong>La lettura degli ingredienti in chiaro.</strong> Un dizionario di sinonimi italiani, perché il glutine non si scrive quasi mai “glutine”: farro, kamut, semola di grano duro, malto d'orzo, seitan. E il latte si nasconde in caseinato, siero di latte, lattosio, burro. Questo dizionario è un lavoro di precisione ed è il vero valore aggiunto dell'app.</li>
+    <li><strong>L'analisi automatica del database</strong> per vegano, vegetariano e olio di palma, che Open Food Facts deriva già dagli ingredienti.</li>
+  </ul>
+
+  <h3>Quattro esiti possibili, non due</h3>
+  <div class="verdicts">
+    <div class="v v-bad"><span class="lab">Contiene</span><span class="txt">Un ingrediente del tuo profilo è presente. Rosso pieno, in cima allo schermo, con l'ingrediente evidenziato nel testo.</span></div>
+    <div class="v v-warn"><span class="lab">Tracce</span><span class="txt">Non è un ingrediente, ma l'etichetta dichiara possibile contaminazione. Per un'allergia grave cambia tutto, quindi ha un colore suo e non si confonde col verde.</span></div>
+    <div class="v v-unk"><span class="lab">Non so</span><span class="txt">Gli ingredienti sono assenti o incompleti nel database. <strong>Questo stato non deve mai diventare verde.</strong> Con la copertura italiana che abbiamo misurato, comparirà spesso: che sia chiaro, non nascosto.</span></div>
+    <div class="v v-ok"><span class="lab">Nessuna corrispondenza</span><span class="txt">Ingredienti completi e nessuna corrispondenza col tuo profilo. Si noti la formula: non è “è sicuro”, è “non ho trovato nulla”.</span></div>
+  </div>
+
+  <p>Accanto al semaforo va sempre l'invito a controllare l'etichetta fisica, e il progetto va accompagnato da un avviso chiaro che non si tratta di un dispositivo medico. È una scelta di prudenza, non burocrazia: le formulazioni dei prodotti cambiano più in fretta dei database.</p>
+
+  <p class="note">Nota sulla trasparenza: non inventeremo un punteggio proprietario “da 0 a 100” come fanno certe app commerciali. Mostriamo i punteggi ufficiali (Nutri-Score, NOVA) e i dati grezzi. Se un prodotto è giudicato male, l'utente deve poter vedere <em>perché</em>.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="idx mono">06</span><h2>Come è fatta dentro</h2></div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Strato</th><th>Scelta</th><th>Perché</th></tr></thead>
+      <tbody>
+        <tr><td>Interfaccia</td><td>React + TypeScript, build con Vite</td><td>TypeScript qui non è pedanteria: descrivere in modo rigido i dati di un prodotto evita che un campo mancante diventi un errore a schermo.</td></tr>
+        <tr><td>App installabile</td><td>PWA con service worker</td><td>Icona sulla home, apertura a schermo intero, funziona senza rete.</td></tr>
+        <tr><td>Lettura barcode</td><td>API nativa del browser, fallback WebAssembly</td><td>Su Android la fotocamera usa il decoder di sistema, veloce. Su iPhone serve il fallback compilato in WebAssembly. Formati: EAN-13, EAN-8, UPC.</td></tr>
+        <tr><td>Archivio locale</td><td>IndexedDB</td><td>Profilo, dispensa, storico e cache prodotti. Nessun dato lascia il telefono.</td></tr>
+        <tr><td>Rete</td><td>Client con coda, deduplica e cache</td><td>Risponde al limite di chiamate misurato: mai due richieste identiche in volo, mai una ricerca non richiesta dall'utente.</td></tr>
+        <tr><td>Rilascio</td><td>GitHub + deploy automatico</td><td>Ogni modifica approvata va online da sola. HTTPS incluso, obbligatorio per usare la fotocamera.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="margin-top:18px">Una precauzione sui dati locali: siccome vivono nel browser, cancellare i dati del sito li cancella. Per questo l'esportazione in un file di backup non è una funzione accessoria da rimandare, ma parte del rilascio.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="idx mono">07</span><h2>Il percorso, in sei fasi</h2></div>
+  <p>Ogni fase finisce con qualcosa che puoi provare col tuo telefono. Niente mesi al buio.</p>
+
+  <div class="phase">
+    <span class="marker">FASE 0</span>
+    <div>
+      <h3>Fondamenta</h3>
+      <p>Repository, licenza, impianto del progetto, sistema di stili, pubblicazione automatica. Lavoro invisibile ma che decide quanto sarà scorrevole tutto il resto.</p>
+      <div class="out"><b>Alla fine</b>Apri un indirizzo dal telefono e installi un'app vuota sulla home.</div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="marker">FASE 1</span>
+    <div>
+      <h3>Lo scanner e la scheda prodotto</h3>
+      <p>Accesso alla fotocamera, riconoscimento del codice, torcia per gli scaffali bui, e — rete di sicurezza sempre presente — la possibilità di digitare il codice a mano. Poi il collegamento a Open Food Facts, la cache, e la scheda prodotto completa con i buchi dichiarati come tali.</p>
+      <div class="out"><b>Alla fine</b>Vai al supermercato, inquadri un prodotto vero e leggi cosa contiene. È il primo test sul campo, e ci dirà molto sulla copertura reale dei prodotti che compri tu.</div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="marker">FASE 2</span>
+    <div>
+      <h3>Il profilo e il semaforo</h3>
+      <p>Impostazione iniziale del profilo sui 14 allergeni riconosciuti dalla normativa europea, più intolleranze, diete e preferenze personali. Poi il motore a tre livelli, il dizionario dei sinonimi italiani e i quattro esiti.</p>
+      <div class="out"><b>Alla fine</b>L'app risponde alla domanda per cui esiste: posso mangiarlo?</div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="marker">FASE 3</span>
+    <div>
+      <h3>Dispensa e scadenze</h3>
+      <p>Aggiunta rapida dalla scansione, quantità, posizione, data di scadenza, elenco ordinato per urgenza, consumo e scarico. Avviso all'apertura dell'app, e notifiche vere quando è installata sulla home.</p>
+      <div class="out"><b>Alla fine</b>L'app ti serve anche a casa, non solo tra le corsie.</div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="marker">FASE 4</span>
+    <div>
+      <h3>Quando il dato non c'è</h3>
+      <p>La catena di fallback completa e la schermata di inserimento manuale con foto dell'etichetta. Qui si affronta di petto il 62,5% misurato all'inizio.</p>
+      <div class="out"><b>Alla fine</b>Un prodotto sconosciuto non è più un vicolo cieco.</div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="marker">FASE 5</span>
+    <div>
+      <h3>Rifinitura e rilascio</h3>
+      <p>Funzionamento offline completo, esportazione e importazione dei dati, accessibilità, attribuzione della licenza dei dati, pagina privacy (breve, perché non raccogliamo nulla), documentazione del repository.</p>
+      <div class="out"><b>Alla fine</b>Un indirizzo che puoi dare a chiunque.</div>
+    </div>
+  </div>
+
+  <div class="phase later">
+    <span class="marker">POI</span>
+    <div>
+      <h3>Quello che verrà dopo, se l'app ti convince</h3>
+      <p>Confronto affiancato tra due prodotti allo scaffale. Storico e statistiche della spesa. Lettura automatica della data di scadenza dalla foto. Calcolo del Nutri-Score quando mancante ma i valori nutrizionali ci sono — l'algoritmo è pubblico, e recupererebbe una fetta di quel 62,5%.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="idx mono">08</span><h2>Cosa può andare storto</h2></div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Rischio</th><th>Gravità</th><th>Come lo affrontiamo</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Un falso “via libera” su un allergene</strong></td>
+          <td><span class="sev s-crit">Critica</span></td>
+          <td>Mai un esito positivo senza ingredienti completi. Stato “non so” esplicito, tracce separate dal verde, invito costante a leggere l'etichetta, avviso che non è un dispositivo medico.</td>
+        </tr>
+        <tr>
+          <td><strong>Prodotti italiani assenti o incompleti</strong></td>
+          <td><span class="sev s-alto">Alta</span></td>
+          <td>Misurata, non ipotizzata: 62,5% senza punteggio. Fallback multi-fonte, inserimento manuale, e nessuna finta certezza nell'interfaccia.</td>
+        </tr>
+        <tr>
+          <td><strong>Lo scanner su iPhone</strong></td>
+          <td><span class="sev s-alto">Alta</span></td>
+          <td>Safari non offre il decoder di sistema: si usa il fallback WebAssembly, si verifica sul tuo telefono già in fase 1, e l'inserimento manuale del codice resta sempre disponibile.</td>
+        </tr>
+        <tr>
+          <td><strong>Limite di chiamate all'API</strong></td>
+          <td><span class="sev s-medio">Media</span></td>
+          <td>Cache locale su ogni prodotto letto, richieste deduplicate, ricerche solo su azione esplicita dell'utente.</td>
+        </tr>
+        <tr>
+          <td><strong>Open Food Facts non risponde</strong></td>
+          <td><span class="sev s-medio">Media</span></td>
+          <td>È un progetto di volontari, non un fornitore con contratto. La cache copre i prodotti già visti; per gli altri, messaggio chiaro e riprova, mai una schermata bianca.</td>
+        </tr>
+        <tr>
+          <td><strong>Dati persi svuotando il browser</strong></td>
+          <td><span class="sev s-medio">Media</span></td>
+          <td>Esportazione in un file di backup dentro il primo rilascio, con promemoria periodico.</td>
+        </tr>
+        <tr>
+          <td><strong>Obblighi della licenza dei dati</strong></td>
+          <td><span class="sev s-medio">Media</span></td>
+          <td>La licenza ODbL impone di citare la fonte e di condividere allo stesso modo eventuali dati derivati. Attribuzione visibile nella scheda prodotto e nel repository: è un obbligo semplice, basta non dimenticarlo.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="idx mono">09</span><h2>Decisioni che possiamo rimandare</h2></div>
+  <p>Non bloccano l'inizio dei lavori, ma prima o poi vanno prese. Le lascio qui perché non si perdano.</p>
+  <ul>
+    <li><strong>Il nome.</strong> “FoodCheck” è un ottimo nome di lavoro. Prima di comprare un dominio conviene una verifica di omonimie.</li>
+    <li><strong>La licenza del codice.</strong> Permissiva (chiunque può usarlo, anche in prodotti chiusi) oppure copyleft (chi lo usa deve restare aperto). Va decisa prima del primo caricamento pubblico, perché cambiarla dopo è scomodo.</li>
+    <li><strong>Profili multipli.</strong> Un solo profilo o uno per persona in famiglia? Cambia poco nel codice se lo si prevede subito, molto se lo si aggiunge dopo. Propendo per prevederlo nella struttura dei dati e mostrarne uno solo all'inizio.</li>
+    <li><strong>Restituire i dati a Open Food Facts.</strong> Bello e coerente, ma richiede la gestione di un account del progetto: naturale in fase 4, prematuro prima.</li>
+    <li><strong>Lingue.</strong> Solo italiano o anche inglese? Predisporre la traduzione da subito costa poco; aggiungerla dopo costa parecchio.</li>
+  </ul>
+</section>
+
+<div class="close">
+  <h2>Il prossimo passo</h2>
+  <p>Fase 0 e Fase 1 insieme: fondamenta e scanner funzionante. È il blocco che trasforma questo documento in qualcosa che tieni in mano al supermercato, ed è anche il test più onesto dell'intero progetto — perché ci dirà, sui prodotti che compri davvero tu, quanto spesso il database sa rispondere.</p>
+  <p>Da lì in poi si costruisce sopra qualcosa che sappiamo già funzionare.</p>
+</div>
+
+<footer>
+  <p class="mono">FOODCHECK · PIANO DI PROGETTO · V1</p>
+  <p>Dati di copertura rilevati il 25 agosto 2026 interrogando direttamente l'API di Open Food Facts. I prodotti alimentari citati sono usati a solo titolo di esempio tecnico. Open Food Facts è un progetto collaborativo indipendente, i suoi dati sono distribuiti con licenza ODbL.</p>
+</footer>
+
+</div>

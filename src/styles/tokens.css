@@ -1,0 +1,79 @@
+/* Palette unica dell'app: gli stessi valori del documento di progetto.
+   L'accento e' indaco e non verde/rosso di proposito: quei due colori
+   restano riservati agli esiti del profilo allergie (fase 2), e non
+   devono mai confondersi con la decorazione dell'interfaccia. */
+:root {
+  --ground: #F5F5F9;
+  --surface: #FFFFFF;
+  --surface-2: #EEEEF4;
+  --ink: #15151C;
+  --ink-soft: #3C3C4A;
+  --muted: #63636F;
+  --rule: #DCDCE6;
+  --rule-soft: #E8E8F0;
+  --accent: #2E36C9;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E5E6FA;
+  --ok: #1F7A4C;
+  --ok-bg: #E2F1E8;
+  --warn: #8A6410;
+  --warn-bg: #F6EDD8;
+  --bad: #B32D1E;
+  --bad-bg: #F8E4E1;
+  --shadow: 0 1px 2px rgba(21, 21, 28, .05), 0 8px 24px -12px rgba(21, 21, 28, .18);
+
+  --nutri-a: #1E8F4E;
+  --nutri-b: #86BC2A;
+  --nutri-c: #F7C300;
+  --nutri-d: #EE8100;
+  --nutri-e: #E63E11;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --sp: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0E0E14;
+    --surface: #16161E;
+    --surface-2: #1D1D27;
+    --ink: #EDEDF3;
+    --ink-soft: #C6C6D4;
+    --muted: #9494A6;
+    --rule: #2A2A36;
+    --rule-soft: #22222D;
+    --accent: #9096FF;
+    --accent-ink: #0E0E14;
+    --accent-soft: #23244A;
+    --ok: #5FC28C;
+    --ok-bg: #16301F;
+    --warn: #D9AE55;
+    --warn-bg: #33280F;
+    --bad: #F08D7E;
+    --bad-bg: #3A1B16;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -12px rgba(0, 0, 0, .7);
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground: #0E0E14;
+  --surface: #16161E;
+  --surface-2: #1D1D27;
+  --ink: #EDEDF3;
+  --ink-soft: #C6C6D4;
+  --muted: #9494A6;
+  --rule: #2A2A36;
+  --rule-soft: #22222D;
+  --accent: #9096FF;
+  --accent-ink: #0E0E14;
+  --accent-soft: #23244A;
+  --ok: #5FC28C;
+  --ok-bg: #16301F;
+  --warn: #D9AE55;
+  --warn-bg: #33280F;
+  --bad: #F08D7E;
+  --bad-bg: #3A1B16;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -12px rgba(0, 0, 0, .7);
+}
