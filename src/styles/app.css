@@ -769,3 +769,11 @@ h1, h2, h3, p { margin: 0; }
 }
 
 .avvio .bottone { margin-top: var(--s2); }
+
+.dettaglio-errore {
+  margin-top: var(--s3);
+  font-size: var(--t-micro);
+  color: var(--testo-3);
+  word-break: break-word;
+  max-width: 34ch;
+}

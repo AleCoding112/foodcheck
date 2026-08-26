@@ -55,15 +55,19 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Se il permesso è già stato dato, la fotocamera parte da sola: aprire l'app
-  // e trovarsi già in scansione è metà del valore di questa app. Al primo uso
-  // serve invece un tocco, perché iOS non concede la fotocamera senza un gesto.
+  // Se il permesso è già stato dato la fotocamera parte da sola: aprire l'app
+  // e trovarsi già in scansione è metà del suo valore. Dove `permissions` non
+  // esiste — Safari, cioè proprio iPhone — resta il tocco sul pulsante, che è
+  // comunque l'unico modo perché Safari conceda la fotocamera.
   useEffect(() => {
     let annullato = false
     navigator.permissions
       ?.query({ name: 'camera' as PermissionName })
       .then((p) => {
-        if (!annullato && p.state === 'granted') setFotocameraAccesa(true)
+        if (!annullato && p.state === 'granted') {
+          setFotocameraAccesa(true)
+          void avviaRef.current()
+        }
       })
       .catch(() => undefined)
     return () => {
@@ -115,7 +119,18 @@ export default function App() {
   // continuare a macinare fotogrammi sotto un foglio coperto è solo batteria
   // buttata.
   const inPausa = fase.tipo !== 'scansione' || finestraCodice
-  const scanner = useScanner(fotocameraAccesa, inPausa, cerca)
+  const scanner = useScanner(inPausa, cerca)
+
+  const avviaRef = useRef(scanner.avvia)
+  avviaRef.current = scanner.avvia
+
+  // La richiesta della fotocamera parte da qui, dentro il tocco. Spostarla in
+  // un effetto la farebbe scattare dopo, quando Safari non la considera più
+  // conseguenza di un gesto e la rifiuta.
+  const accendiFotocamera = async () => {
+    setFotocameraAccesa(true)
+    await scanner.avvia()
+  }
 
   const cercando = fase.tipo === 'scansione' && fotocameraAccesa && !scanner.errore
 
@@ -165,7 +180,7 @@ export default function App() {
         <div className="avvio">
           <h1>Sappi cosa stai per mangiare</h1>
           <p>Nessun account. Niente esce da questo telefono.</p>
-          <button type="button" className="bottone bottone-pieno" onClick={() => setFotocameraAccesa(true)}>
+          <button type="button" className="bottone bottone-pieno" onClick={accendiFotocamera}>
             Attiva la fotocamera
           </button>
           <button type="button" className="bottone-piatto" onClick={() => setFinestraCodice(true)}>
@@ -182,7 +197,12 @@ export default function App() {
 
       {scanner.errore ? (
         <Foglio stato="aperto">
-          <ErroreFotocamera motivo={scanner.errore} onCodiceAMano={() => setFinestraCodice(true)} />
+          <ErroreFotocamera
+            motivo={scanner.errore}
+            dettaglio={scanner.dettaglioErrore}
+            onRiprova={accendiFotocamera}
+            onCodiceAMano={() => setFinestraCodice(true)}
+          />
         </Foglio>
       ) : fase.tipo === 'scansione' ? (
         // Al primo avvio, senza nulla da mostrare, il foglio resta chiuso:

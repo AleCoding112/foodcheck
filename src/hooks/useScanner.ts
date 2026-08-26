@@ -17,10 +17,15 @@ export interface Scanner {
   videoRef: React.RefObject<HTMLVideoElement | null>
   stato: StatoScanner
   errore?: MotivoErrore
+  /** Nome tecnico dell'errore del browser: serve a capire cosa è successo
+   *  quando qualcuno segnala che "non funziona". */
+  dettaglioErrore?: string
   motore?: 'nativo' | 'zxing'
   torciaDisponibile: boolean
   torciaAccesa: boolean
   commutaTorcia: () => void
+  /** Va chiamata direttamente dentro il gestore del tocco. */
+  avvia: () => Promise<void>
 }
 
 const FORMATI_NATIVI = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'itf', 'code_128']
@@ -58,10 +63,16 @@ function classificaErrore(err: unknown): MotivoErrore {
  * invece si ferma appena un prodotto viene trovato — mentre leggi la scheda
  * non ha senso continuare a macinare fotogrammi, e la batteria ringrazia.
  *
+ * `avvia` non parte da sola dentro un effetto: Safari concede la fotocamera
+ * solo se la richiesta parte dal gesto dell'utente, e in un'app aggiunta alla
+ * schermata home è ancora più rigido. Chiamarla dentro useEffect significa
+ * chiamarla dopo il tocco, quando l'autorizzazione del gesto è già scaduta:
+ * il permesso viene negato senza nemmeno mostrare la richiesta.
+ *
  * Due precauzioni contro le letture sbagliate, che a scaffale capitano spesso:
  * il codice deve superare la cifra di controllo e va letto due volte uguale.
  */
-export function useScanner(acceso: boolean, inPausa: boolean, onCodice: (codice: string) => void): Scanner {
+export function useScanner(inPausa: boolean, onCodice: (codice: string) => void): Scanner {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const ultimaLettura = useRef<{ codice: string; quando: number } | null>(null)
@@ -74,6 +85,7 @@ export function useScanner(acceso: boolean, inPausa: boolean, onCodice: (codice:
   const [motore, setMotore] = useState<'nativo' | 'zxing' | undefined>()
   const [torciaDisponibile, setTorciaDisponibile] = useState(false)
   const [torciaAccesa, setTorciaAccesa] = useState(false)
+  const [dettaglio, setDettaglio] = useState<string | undefined>()
 
   const proponi = useCallback((grezzo: string) => {
     if (consegnato.current) return
@@ -101,77 +113,80 @@ export function useScanner(acceso: boolean, inPausa: boolean, onCodice: (codice:
       .catch(() => setTorciaDisponibile(false))
   }, [torciaAccesa])
 
-  // 1. Il flusso video: si apre quando l'app accende la fotocamera e resta.
-  useEffect(() => {
-    if (!acceso) return
-    let annullato = false
+  const avvia = useCallback(async () => {
+    if (streamRef.current) return
+    setStato('avvio')
+    setErrore(undefined)
+    setDettaglio(undefined)
 
-    async function avvia() {
-      setStato('avvio')
-      setErrore(undefined)
+    // La fotocamera richiede una connessione sicura: localhost va bene,
+    // un indirizzo di rete locale in chiaro no.
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+      setErrore('contesto-non-sicuro')
+      setStato('errore')
+      return
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setErrore('nessuna-fotocamera')
+      setStato('errore')
+      return
+    }
 
-      // La fotocamera richiede una connessione sicura: localhost va bene,
-      // un indirizzo di rete locale in chiaro no.
-      if (typeof window !== 'undefined' && !window.isSecureContext) {
-        setErrore('contesto-non-sicuro')
-        setStato('errore')
-        return
-      }
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setErrore('nessuna-fotocamera')
-        setStato('errore')
-        return
-      }
+    // Si scende di pretese a ogni tentativo. Alcuni iPhone rifiutano una
+    // richiesta troppo specifica e accettano quella nuda.
+    const tentativi: MediaStreamConstraints[] = [
+      { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false },
+      { video: { facingMode: 'environment' }, audio: false },
+      { video: true, audio: false },
+    ]
 
-      let stream: MediaStream
+    let stream: MediaStream | undefined
+    let ultimoErrore: unknown
+    for (const vincoli of tentativi) {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: false,
-        })
+        stream = await navigator.mediaDevices.getUserMedia(vincoli)
+        break
       } catch (err) {
-        if (annullato) return
-        setErrore(classificaErrore(err))
-        setStato('errore')
-        return
+        ultimoErrore = err
+        // Se il permesso è stato negato non ha senso insistere con vincoli
+        // più larghi: la risposta sarà la stessa.
+        const nome = (err as { name?: string } | null)?.name
+        if (nome === 'NotAllowedError' || nome === 'SecurityError') break
       }
+    }
 
-      if (annullato) {
-        stream.getTracks().forEach((t) => t.stop())
-        return
-      }
+    if (!stream) {
+      const err = ultimoErrore as { name?: string; message?: string } | null
+      setErrore(classificaErrore(ultimoErrore))
+      setDettaglio(`${err?.name ?? 'Errore'}: ${err?.message ?? 'motivo non riportato dal browser'}`)
+      setStato('errore')
+      return
+    }
 
-      streamRef.current = stream
-      const video = videoRef.current
-      if (!video) return
+    streamRef.current = stream
+    const video = videoRef.current
+    if (video) {
       video.srcObject = stream
       video.setAttribute('playsinline', 'true')
       video.muted = true
       // Volutamente senza await: la promessa di play() in certe condizioni non
       // si risolve mai, e aspettarla lasciava l'app ferma su "accendo la
-      // fotocamera" per sempre. L'immagine parte lo stesso, e il ciclo di
-      // lettura controlla comunque che ci siano fotogrammi pronti.
+      // fotocamera" per sempre.
       void video.play().catch(() => undefined)
-
-      const track = stream.getVideoTracks()[0]
-      setTorciaDisponibile(Boolean(track?.getCapabilities?.()?.torch))
-      if (!annullato) setStato('attivo')
     }
 
-    avvia()
+    setTorciaDisponibile(Boolean(stream.getVideoTracks()[0]?.getCapabilities?.()?.torch))
+    setStato('attivo')
+  }, [])
 
+  // Lo spegnimento avviene solo quando la pagina viene chiusa: tenere il
+  // flusso aperto evita il secondo di nero a ogni scansione.
+  useEffect(() => {
     return () => {
-      annullato = true
       streamRef.current?.getTracks().forEach((t) => t.stop())
       streamRef.current = null
-      const video = videoRef.current
-      if (video) video.srcObject = null
-      setStato('spento')
-      setTorciaAccesa(false)
-      setTorciaDisponibile(false)
-      setMotore(undefined)
     }
-  }, [acceso])
+  }, [])
 
   // 2. L'immagine si congela mentre leggi la scheda, e riparte quando chiudi.
   useEffect(() => {
@@ -250,5 +265,5 @@ export function useScanner(acceso: boolean, inPausa: boolean, onCodice: (codice:
     }
   }, [stato, inPausa, proponi])
 
-  return { videoRef, stato, errore, motore, torciaDisponibile, torciaAccesa, commutaTorcia }
+  return { videoRef, stato, errore, dettaglioErrore: dettaglio, motore, torciaDisponibile, torciaAccesa, commutaTorcia, avvia }
 }

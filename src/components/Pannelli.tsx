@@ -90,7 +90,8 @@ export function CodiceAMano({ onCerca, onChiudi }: { onCerca: (codice: string) =
 const ERRORI: Record<MotivoErrore, { titolo: string; testo: string }> = {
   permesso: {
     titolo: 'Serve il permesso della fotocamera',
-    testo: 'Il browser lo ha negato. Puoi consentirlo dalle impostazioni del sito, oppure digitare il codice a mano.',
+    testo:
+      'Il browser lo ha negato. Su iPhone: Impostazioni → Safari → Fotocamera → Consenti, poi riapri l’app. Oppure digita il codice a mano.',
   },
   'nessuna-fotocamera': {
     titolo: 'Nessuna fotocamera disponibile',
@@ -114,16 +115,37 @@ const ERRORI: Record<MotivoErrore, { titolo: string; testo: string }> = {
   },
 }
 
-export function ErroreFotocamera({ motivo, onCodiceAMano }: { motivo: MotivoErrore; onCodiceAMano: () => void }) {
+interface ErroreProps {
+  motivo: MotivoErrore
+  dettaglio?: string
+  onRiprova: () => void
+  onCodiceAMano: () => void
+}
+
+export function ErroreFotocamera({ motivo, dettaglio, onRiprova, onCodiceAMano }: ErroreProps) {
   const m = ERRORI[motivo]
   return (
     <div className="foglio-corpo">
       <div className="stato">
         <h2>{m.titolo}</h2>
         <p>{m.testo}</p>
-        <button type="button" className="bottone bottone-pieno" onClick={onCodiceAMano}>
+        <button type="button" className="bottone bottone-pieno" onClick={onRiprova}>
+          Riprova
+        </button>
+        <button type="button" className="bottone bottone-vuoto" onClick={onCodiceAMano}>
           Digita il codice
         </button>
+        {/* Il motivo tecnico, in piccolo: a chi sta usando l'app non serve,
+            a chi deve capire perché non parte serve moltissimo. */}
+        <p className="num dettaglio-errore">
+          {dettaglio && (
+            <>
+              {dettaglio}
+              <br />
+            </>
+          )}
+          versione {__VERSIONE__}
+        </p>
       </div>
     </div>
   )

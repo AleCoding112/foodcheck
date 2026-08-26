@@ -2,6 +2,9 @@
  *  Dichiariamo il minimo che ci serve: la usiamo dove c'è, altrimenti si passa
  *  al decodificatore in JavaScript. */
 declare global {
+  /** Data e ora della compilazione, inserita da Vite. */
+  const __VERSIONE__: string
+
   interface DetectedBarcode {
     rawValue: string
     format: string

@@ -7,8 +7,16 @@ import basicSsl from '@vitejs/plugin-basic-ssl'
 // Il workflow di deploy imposta BASE_PATH; altrove resta la radice.
 const base = process.env.BASE_PATH ?? '/'
 
+// Marcatore della versione: sul telefono, davanti a un'app che "non
+// funziona", la prima cosa da sapere è se sta girando la build nuova o una
+// vecchia rimasta in cache.
+const versione = new Date().toISOString().slice(0, 16).replace('T', ' ')
+
 export default defineConfig({
   base,
+  define: {
+    __VERSIONE__: JSON.stringify(versione),
+  },
   plugins: [
     react(),
     // La fotocamera funziona solo in contesto sicuro. In locale basta
