@@ -121,6 +121,15 @@ try {
   await caricata
   await pausa(Number(attesa))
 
+  // CLIC="selettore" tocca un elemento prima di scattare: serve a fotografare
+  // finestre e pannelli che si aprono solo interagendo.
+  if (process.env.CLIC) {
+    await invia('Runtime.evaluate', {
+      expression: `document.querySelector(${JSON.stringify(process.env.CLIC)})?.click()`,
+    }, sessionId)
+    await pausa(600)
+  }
+
   // La scheda scorre dentro il foglio, non nella pagina: per vedere il resto
   // bisogna scorrere quell'elemento.
   if (Number(scorri) > 0) {

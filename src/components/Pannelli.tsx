@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Scansione } from '../lib/db'
 import { formatBarcode, normalizeBarcode } from '../lib/barcode'
 import { quando } from '../lib/format'
-import type { MotivoErrore } from '../hooks/useScanner'
+import { inModalitaApp, type MotivoErrore } from '../hooks/useScanner'
 
 /** La striscia dei prodotti già letti, che resta a portata di pollice
  *  mentre la fotocamera cerca. */
@@ -82,6 +82,10 @@ export function CodiceAMano({ onCerca, onChiudi }: { onCerca: (codice: string) =
         <button type="button" className="bottone-piatto" onClick={onChiudi}>
           annulla
         </button>
+        <p className="num dettaglio-errore" style={{ textAlign: 'center', margin: 0 }}>
+          versione {__VERSIONE__}
+          {inModalitaApp() ? ' · da icona' : ' · da browser'}
+        </p>
       </form>
     </div>
   )
@@ -100,6 +104,11 @@ const ERRORI: Record<MotivoErrore, { titolo: string; testo: string }> = {
   'contesto-non-sicuro': {
     titolo: 'Connessione non sicura',
     testo: 'La fotocamera funziona solo su HTTPS o su localhost. Apri l’app dall’indirizzo sicuro.',
+  },
+  'nessuna-risposta': {
+    titolo: 'La fotocamera non risponde',
+    testo:
+      'Ho chiesto l’accesso e non è arrivata nessuna risposta, né sì né no. Succede su iPhone quando l’app è stata aggiunta alla schermata home: prova ad aprirla da Safari, dall’indirizzo, invece che dall’icona.',
   },
   occupata: {
     titolo: 'Fotocamera occupata',
@@ -124,11 +133,18 @@ interface ErroreProps {
 
 export function ErroreFotocamera({ motivo, dettaglio, onRiprova, onCodiceAMano }: ErroreProps) {
   const m = ERRORI[motivo]
+  const daIcona = inModalitaApp()
   return (
     <div className="foglio-corpo">
       <div className="stato">
         <h2>{m.titolo}</h2>
         <p>{m.testo}</p>
+        {daIcona && motivo !== 'nessuna-risposta' && (
+          <p>
+            Stai usando l’app aggiunta alla schermata home. Se qui non funziona, aprila da Safari
+            all’indirizzo <b>alecoding112.github.io/foodcheck</b>: iOS tratta i due casi in modo diverso.
+          </p>
+        )}
         <button type="button" className="bottone bottone-pieno" onClick={onRiprova}>
           Riprova
         </button>
@@ -145,6 +161,7 @@ export function ErroreFotocamera({ motivo, dettaglio, onRiprova, onCodiceAMano }
             </>
           )}
           versione {__VERSIONE__}
+          {daIcona ? ' · da icona' : ' · da browser'}
         </p>
       </div>
     </div>

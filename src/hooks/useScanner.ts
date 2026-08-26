@@ -10,6 +10,7 @@ export type MotivoErrore =
   | 'nessuna-fotocamera'
   | 'contesto-non-sicuro'
   | 'occupata'
+  | 'nessuna-risposta'
   | 'lettura-non-avviata'
   | 'generico'
 
@@ -47,8 +48,28 @@ async function caricaZxing() {
   return new browser.BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 150 })
 }
 
+/** In modalità app aggiunta alla schermata home iOS a volte non risponde
+ *  affatto alla richiesta della fotocamera: né permesso né rifiuto, la
+ *  promessa resta sospesa per sempre. Senza un limite di tempo l'app
+ *  aspetterebbe in silenzio, che è esattamente come "non fa niente". */
+function conScadenza<T>(promessa: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promessa,
+    new Promise<never>((_, rifiuta) =>
+      setTimeout(() => rifiuta(new DOMException('nessuna risposta dal browser', 'TimeoutError')), ms),
+    ),
+  ])
+}
+
+export function inModalitaApp(): boolean {
+  if (typeof window === 'undefined') return false
+  const iosStandalone = (window.navigator as { standalone?: boolean }).standalone === true
+  return iosStandalone || window.matchMedia?.('(display-mode: standalone)').matches === true
+}
+
 function classificaErrore(err: unknown): MotivoErrore {
   const nome = (err as { name?: string } | null)?.name ?? ''
+  if (nome === 'TimeoutError') return 'nessuna-risposta'
   if (nome === 'NotAllowedError' || nome === 'SecurityError') return 'permesso'
   if (nome === 'NotFoundError' || nome === 'OverconstrainedError') return 'nessuna-fotocamera'
   if (nome === 'NotReadableError' || nome === 'AbortError') return 'occupata'
@@ -114,6 +135,19 @@ export function useScanner(inPausa: boolean, onCodice: (codice: string) => void)
   }, [torciaAccesa])
 
   const avvia = useCallback(async () => {
+    try {
+      await avviaDavvero()
+    } catch (err) {
+      // Nessun percorso deve finire in silenzio: un'app che non dice niente
+      // è indistinguibile da un'app rotta.
+      const e = err as { name?: string; message?: string } | null
+      setErrore('generico')
+      setDettaglio(`${e?.name ?? 'Errore'}: ${e?.message ?? 'imprevisto'}`)
+      setStato('errore')
+    }
+  }, [])
+
+  const avviaDavvero = useCallback(async () => {
     if (streamRef.current) return
     setStato('avvio')
     setErrore(undefined)
@@ -144,14 +178,22 @@ export function useScanner(inPausa: boolean, onCodice: (codice: string) => void)
     let ultimoErrore: unknown
     for (const vincoli of tentativi) {
       try {
-        stream = await navigator.mediaDevices.getUserMedia(vincoli)
+        const richiesta = navigator.mediaDevices.getUserMedia(vincoli)
+        // Se la richiesta scade ma poi risponde lo stesso, il flusso va chiuso:
+        // altrimenti resta la spia della fotocamera accesa a vuoto.
+        richiesta.then((tardiva) => {
+          if (streamRef.current !== tardiva && tardiva !== stream) {
+            tardiva.getTracks().forEach((t) => t.stop())
+          }
+        }).catch(() => undefined)
+        stream = await conScadenza(richiesta, 12000)
         break
       } catch (err) {
         ultimoErrore = err
-        // Se il permesso è stato negato non ha senso insistere con vincoli
-        // più larghi: la risposta sarà la stessa.
         const nome = (err as { name?: string } | null)?.name
-        if (nome === 'NotAllowedError' || nome === 'SecurityError') break
+        // Se il permesso è negato o non arriva risposta, insistere con vincoli
+        // più larghi non cambia nulla.
+        if (nome === 'NotAllowedError' || nome === 'SecurityError' || nome === 'TimeoutError') break
       }
     }
 
