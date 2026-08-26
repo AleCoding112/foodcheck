@@ -76,7 +76,9 @@ export default defineConfig({
         // Le risposte dell'API NON passano dal service worker:
         // la cache dei prodotti la gestiamo noi in IndexedDB (vedi src/lib/db.ts),
         // cosi' sappiamo sempre quanto e' vecchio un dato e possiamo dirlo a schermo.
-        navigateFallbackDenylist: [/^\/api\//],
+        // La pagina di diagnosi deve restare quella vera, non essere
+        // sostituita dall'applicazione come tutte le altre navigazioni.
+        navigateFallbackDenylist: [/^\/api\//, /diagnostica\.html$/],
       },
       devOptions: { enabled: false },
     }),

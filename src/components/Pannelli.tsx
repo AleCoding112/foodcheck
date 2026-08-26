@@ -85,6 +85,8 @@ export function CodiceAMano({ onCerca, onChiudi }: { onCerca: (codice: string) =
         <p className="num dettaglio-errore" style={{ textAlign: 'center', margin: 0 }}>
           versione {__VERSIONE__}
           {inModalitaApp() ? ' · da icona' : ' · da browser'}
+          <br />
+          <a href={`${import.meta.env.BASE_URL}diagnostica.html`}>diagnosi fotocamera</a>
         </p>
       </form>
     </div>
@@ -162,6 +164,8 @@ export function ErroreFotocamera({ motivo, dettaglio, onRiprova, onCodiceAMano }
           )}
           versione {__VERSIONE__}
           {daIcona ? ' · da icona' : ' · da browser'}
+          <br />
+          <a href={`${import.meta.env.BASE_URL}diagnostica.html`}>diagnosi fotocamera</a>
         </p>
       </div>
     </div>
