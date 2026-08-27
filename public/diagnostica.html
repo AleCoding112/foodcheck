@@ -94,10 +94,33 @@
       scrivi('  RIUSCITO dopo ' + t + ' ms')
       scrivi('  fotocamera: ' + (traccia ? traccia.label || '(senza nome)' : 'nessuna traccia'))
       scrivi('  risoluzione: ' + (s.width || '?') + '×' + (s.height || '?'))
-      esito.innerHTML = esito.textContent
+      // La fotocamera aperta non basta: se il video non parte, a schermo
+      // resta nero. iOS controlla gli attributi HTML, non le proprieta'.
+      video.setAttribute('playsinline', 'true')
+      video.setAttribute('webkit-playsinline', 'true')
+      video.setAttribute('muted', 'true')
+      video.setAttribute('autoplay', 'true')
+      video.muted = true
       video.srcObject = flusso
       video.className = 'visibile'
-      video.play().catch(function (e) { scrivi('  play(): rifiutato — ' + e.name) })
+
+      var esitoPlay = 'in corso'
+      video.play().then(function () { esitoPlay = 'riuscito' })
+        .catch(function (e) { esitoPlay = 'RIFIUTATO — ' + e.name + ': ' + e.message })
+
+      var tentativi = 0
+      var controllo = setInterval(function () {
+        tentativi++
+        var scorre = !video.paused && video.videoWidth > 0
+        if (scorre || tentativi > 25) {
+          clearInterval(controllo)
+          scrivi('  play(): ' + esitoPlay)
+          scrivi('  in pausa: ' + video.paused + ' · larghezza video: ' + video.videoWidth)
+          scrivi(scorre
+            ? '  IMMAGINE IN MOVIMENTO: la fotocamera funziona davvero.'
+            : '  IMMAGINE FERMA: il flusso e\' aperto ma il video non parte. E\' questo il problema.')
+        }
+      }, 100)
       return true
     }).catch(function (e) {
       var t = Date.now() - inizio

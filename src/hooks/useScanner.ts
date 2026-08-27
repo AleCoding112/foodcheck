@@ -11,6 +11,7 @@ export type MotivoErrore =
   | 'contesto-non-sicuro'
   | 'occupata'
   | 'nessuna-risposta'
+  | 'immagine-ferma'
   | 'lettura-non-avviata'
   | 'generico'
 
@@ -27,6 +28,11 @@ export interface Scanner {
   commutaTorcia: () => void
   /** Va chiamata direttamente dentro il gestore del tocco. */
   avvia: () => Promise<void>
+  /** La fotocamera è aperta ma il video non scorre: succede su iOS quando il
+   *  browser rifiuta di far partire la riproduzione da solo. */
+  immagineFerma: boolean
+  /** Riprova a far partire il video. Va chiamata dentro un tocco. */
+  sblocca: () => Promise<void>
 }
 
 const FORMATI_NATIVI = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'itf', 'code_128']
@@ -65,6 +71,43 @@ export function inModalitaApp(): boolean {
   if (typeof window === 'undefined') return false
   const iosStandalone = (window.navigator as { standalone?: boolean }).standalone === true
   return iosStandalone || window.matchMedia?.('(display-mode: standalone)').matches === true
+}
+
+const attendi = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/** Aspetta che il video stia davvero scorrendo.
+ *
+ *  Che getUserMedia sia riuscita non significa niente: il flusso può essere
+ *  concesso e poi morire, e a schermo resta nero. Nemmeno
+ *  requestVideoFrameCallback basta — in una prova è scattato su una traccia
+ *  già finita, con l'immagine nera e larghezza 2.
+ *
+ *  L'unica prova che non si può falsificare è il tempo del video che avanza,
+ *  insieme a una traccia viva e a una dimensione credibile. */
+async function scorronoFotogrammi(video: HTMLVideoElement, ms = 4000): Promise<boolean> {
+  const traccia = (video.srcObject as MediaStream | null)?.getVideoTracks?.()[0]
+  const partenza = video.currentTime
+
+  for (let i = 0; i < Math.ceil(ms / 100); i++) {
+    const viva = !traccia || (traccia.readyState === 'live' && !traccia.muted)
+    const avanza = video.currentTime > partenza && video.currentTime > 0
+    if (!video.paused && viva && video.videoWidth > 32 && avanza) return true
+    await attendi(100)
+  }
+  return false
+}
+
+/** iOS fa partire da solo un video solo se è muto e in linea, e controlla gli
+ *  attributi HTML. React scrive la proprietà `muted` ma non l'attributo: senza
+ *  questa funzione, su iPhone il video resta fermo. */
+function preparaVideo(video: HTMLVideoElement) {
+  video.setAttribute('playsinline', 'true')
+  video.setAttribute('webkit-playsinline', 'true')
+  video.setAttribute('muted', 'true')
+  video.setAttribute('autoplay', 'true')
+  video.muted = true
+  video.defaultMuted = true
+  video.autoplay = true
 }
 
 function classificaErrore(err: unknown): MotivoErrore {
@@ -107,6 +150,8 @@ export function useScanner(inPausa: boolean, onCodice: (codice: string) => void)
   const [torciaDisponibile, setTorciaDisponibile] = useState(false)
   const [torciaAccesa, setTorciaAccesa] = useState(false)
   const [dettaglio, setDettaglio] = useState<string | undefined>()
+  const [immagineFerma, setImmagineFerma] = useState(false)
+  const tentativiSblocco = useRef(0)
 
   const proponi = useCallback((grezzo: string) => {
     if (consegnato.current) return
@@ -206,19 +251,86 @@ export function useScanner(inPausa: boolean, onCodice: (codice: string) => void)
     }
 
     streamRef.current = stream
+    setTorciaDisponibile(Boolean(stream.getVideoTracks()[0]?.getCapabilities?.()?.torch))
+
     const video = videoRef.current
-    if (video) {
-      video.srcObject = stream
-      video.setAttribute('playsinline', 'true')
-      video.muted = true
-      // Volutamente senza await: la promessa di play() in certe condizioni non
-      // si risolve mai, e aspettarla lasciava l'app ferma su "accendo la
-      // fotocamera" per sempre.
-      void video.play().catch(() => undefined)
+    if (!video) {
+      setErrore('generico')
+      setDettaglio('Elemento video non trovato nella pagina.')
+      setStato('errore')
+      return
     }
 
-    setTorciaDisponibile(Boolean(stream.getVideoTracks()[0]?.getCapabilities?.()?.torch))
+    preparaVideo(video)
+    video.srcObject = stream
+
+    // play() non si aspetta con await: la sua promessa in certe condizioni non
+    // si risolve mai. Il suo esito però non si butta via, perché è la
+    // differenza fra "sta funzionando" e "schermo nero".
+    let erroreDiPlay: string | undefined
+    void video.play().catch((e: { name?: string; message?: string }) => {
+      erroreDiPlay = `${e?.name ?? 'Errore'}: ${e?.message ?? 'play() rifiutato'}`
+    })
+
     setStato('attivo')
+
+    // Se la fotocamera muore o viene messa in muto piu' avanti — iOS lo fa
+    // quando l'app passa in secondo piano o un'altra app la richiede — lo si
+    // deve dire, non lasciare l'inquadratura nera come se stesse leggendo.
+    const traccia = stream.getVideoTracks()[0]
+    if (traccia) {
+      traccia.addEventListener('ended', () => {
+        setImmagineFerma(false)
+        setErrore('immagine-ferma')
+        setDettaglio('la fotocamera si è chiusa mentre era in uso (traccia terminata)')
+        setStato('errore')
+      })
+      traccia.addEventListener('mute', () => setImmagineFerma(true))
+      traccia.addEventListener('unmute', () => setImmagineFerma(false))
+    }
+
+    const scorre = await scorronoFotogrammi(video)
+    setImmagineFerma(!scorre)
+    if (!scorre) {
+      setDettaglio(
+        `immagine ferma · play(): ${erroreDiPlay ?? 'nessun errore riportato'} · in pausa: ${video.paused} · larghezza: ${video.videoWidth}`,
+      )
+    }
+  }, [])
+
+  /** Riprova a far partire il video da dentro un tocco: è l'unico momento in
+   *  cui iOS lo concede. */
+  const sblocca = useCallback(async () => {
+    const video = videoRef.current
+    if (!video) return
+    preparaVideo(video)
+    let erroreDiPlay: string | undefined
+    try {
+      await video.play()
+    } catch (e) {
+      const err = e as { name?: string; message?: string }
+      erroreDiPlay = `${err?.name ?? 'Errore'}: ${err?.message ?? 'play() rifiutato'}`
+    }
+
+    const scorre = await scorronoFotogrammi(video, 2500)
+    setImmagineFerma(!scorre)
+    if (scorre) {
+      tentativiSblocco.current = 0
+      return
+    }
+
+    tentativiSblocco.current += 1
+    setDettaglio(
+      `dopo ${tentativiSblocco.current} tocchi · play(): ${erroreDiPlay ?? 'riuscito'} · in pausa: ${video.paused} · larghezza: ${video.videoWidth} · traccia: ${streamRef.current?.getVideoTracks()[0]?.readyState ?? 'assente'}`,
+    )
+    // Insistere all'infinito con lo stesso invito e' inutile e fa sembrare
+    // l'app rotta: dopo due tentativi si dice cosa succede e si offre
+    // un'altra strada.
+    if (tentativiSblocco.current >= 2) {
+      setImmagineFerma(false)
+      setErrore('immagine-ferma')
+      setStato('errore')
+    }
   }, [])
 
   // Lo spegnimento avviene solo quando la pagina viene chiusa: tenere il
@@ -240,7 +352,7 @@ export function useScanner(inPausa: boolean, onCodice: (codice: string) => void)
 
   // 3. La decodifica: parte solo mentre si sta davvero cercando un codice.
   useEffect(() => {
-    if (stato !== 'attivo' || inPausa) return
+    if (stato !== 'attivo' || inPausa || immagineFerma) return
     let annullato = false
     let attesa: number | null = null
     let controls: IScannerControls | null = null
@@ -305,7 +417,19 @@ export function useScanner(inPausa: boolean, onCodice: (codice: string) => void)
       if (attesa !== null) clearTimeout(attesa)
       controls?.stop()
     }
-  }, [stato, inPausa, proponi])
+  }, [stato, inPausa, immagineFerma, proponi])
 
-  return { videoRef, stato, errore, dettaglioErrore: dettaglio, motore, torciaDisponibile, torciaAccesa, commutaTorcia, avvia }
+  return {
+    videoRef,
+    stato,
+    errore,
+    dettaglioErrore: dettaglio,
+    motore,
+    torciaDisponibile,
+    torciaAccesa,
+    commutaTorcia,
+    avvia,
+    immagineFerma,
+    sblocca,
+  }
 }

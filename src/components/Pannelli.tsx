@@ -116,6 +116,11 @@ const ERRORI: Record<MotivoErrore, { titolo: string; testo: string }> = {
     titolo: 'Fotocamera occupata',
     testo: 'La sta usando un’altra applicazione. Chiudila e riprova.',
   },
+  'immagine-ferma': {
+    titolo: 'La fotocamera è aperta ma non manda immagini',
+    testo:
+      'Il permesso c’è e il flusso è stato concesso, ma non arriva nessun fotogramma. Su iPhone succede quando l’app è aperta dall’icona sulla schermata home: prova ad aprirla da Safari, dall’indirizzo. Nel frattempo puoi digitare il codice.',
+  },
   'lettura-non-avviata': {
     titolo: 'La fotocamera funziona, la lettura no',
     testo: 'Non riesco ad avviare il riconoscimento dei codici su questo browser. Il codice puoi digitarlo a mano.',

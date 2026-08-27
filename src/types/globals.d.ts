@@ -17,6 +17,13 @@ declare global {
     detect(source: CanvasImageSource): Promise<DetectedBarcode[]>
   }
 
+  interface HTMLVideoElement {
+    /** Chiama la funzione quando un fotogramma viene davvero presentato a
+     *  schermo. Presente in Safari dalla 15.4 e in Chrome. */
+    requestVideoFrameCallback?(callback: (now: number, metadata: unknown) => void): number
+    cancelVideoFrameCallback?(handle: number): void
+  }
+
   interface MediaTrackCapabilities {
     torch?: boolean
   }

@@ -136,7 +136,7 @@ export default function App() {
 
   return (
     <main className="palco" data-congelato={inPausa}>
-      <video ref={scanner.videoRef} playsInline muted aria-hidden="true" />
+      <video ref={scanner.videoRef} playsInline muted autoPlay aria-hidden="true" />
       <div className="palco-velo" aria-hidden="true" />
 
       {!scanner.errore && fase.tipo === 'scansione' && (
@@ -189,7 +189,17 @@ export default function App() {
         </div>
       )}
 
-      {cercando && (
+      {/* La fotocamera è aperta ma il video non scorre: iOS non lo fa partire
+          da solo. Invece di lasciare uno schermo nero e muto, si chiede il
+          tocco che serve a sbloccarlo. */}
+      {scanner.immagineFerma && fase.tipo === 'scansione' && (
+        <button type="button" className="sblocca" onClick={scanner.sblocca}>
+          <strong>Tocca per avviare l’immagine</strong>
+          <span>La fotocamera è aperta, ma il telefono non ha fatto partire il video da solo.</span>
+        </button>
+      )}
+
+      {cercando && !scanner.immagineFerma && (
         <p className="istruzione">
           {scanner.stato === 'avvio' ? 'Accendo la fotocamera…' : 'Riempi il riquadro con il codice a barre'}
         </p>

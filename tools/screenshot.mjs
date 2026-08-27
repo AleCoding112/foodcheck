@@ -25,13 +25,10 @@ if (!url || !uscita) {
 // rimasto appeso da una prova precedente continua a rispondere e ci si
 // collega a lui — con le sue impostazioni, non con quelle richieste qui.
 const porta = 9300 + (process.pid % 500)
-// Con la fotocamera finta serve un profilo stabile: macOS nega l'accesso ai
-// profili appena creati ("Permission denied by system") e la prova fallirebbe
-// per un motivo che non ha nulla a che vedere con l'app.
-const profilo =
-  process.env.FINTA_FOTOCAMERA === '1'
-    ? '/tmp/foodcheck-chrome-fisso'
-    : await mkdtemp(join(tmpdir(), 'foodcheck-chrome-'))
+// Sempre un profilo nuovo. Riusarne uno fisso sembrava comodo, ma si porta
+// dietro il service worker della prova precedente: si finisce per fotografare
+// una versione vecchia dell'app credendo di guardare quella appena compilata.
+const profilo = await mkdtemp(join(tmpdir(), 'foodcheck-chrome-'))
 
 const chrome = spawn(CHROME, [
   '--headless=new',
@@ -115,10 +112,51 @@ try {
     })
   }
 
+  // FOTOCAMERA_CANVAS=1 sostituisce getUserMedia con un flusso disegnato su
+  // una tela: fotogrammi veri, che avanzano davvero, senza dipendere da una
+  // fotocamera fisica o dalla finta di Chrome (che in headless a volte muore
+  // subito). Serve a provare il caso in cui tutto funziona.
+  if (process.env.FOTOCAMERA_CANVAS === '1') {
+    await invia('Page.addScriptToEvaluateOnNewDocument', {
+      source: `(() => {
+        const tela = document.createElement('canvas')
+        tela.width = 1280; tela.height = 720
+        const ctx = tela.getContext('2d')
+        let n = 0
+        function disegna() {
+          ctx.fillStyle = '#f2f2f2'; ctx.fillRect(0, 0, 1280, 720)
+          ctx.fillStyle = '#111'
+          // barre che scorrono: garantiscono che ogni fotogramma sia diverso
+          for (let i = 0; i < 40; i++) {
+            const x = (i * 32 + n) % 1280
+            ctx.fillRect(x, 180, (i % 3) + 2, 360)
+          }
+          ctx.font = '40px monospace'
+          ctx.fillText('fotogramma ' + n, 40, 660)
+          n++
+          requestAnimationFrame(disegna)
+        }
+        disegna()
+        const flusso = tela.captureStream(30)
+        navigator.mediaDevices.getUserMedia = () => Promise.resolve(flusso)
+        navigator.permissions = navigator.permissions || {}
+        navigator.permissions.query = () => Promise.resolve({ state: 'granted', onchange: null })
+      })()`,
+    }, sessionId)
+  }
+
   await invia('Page.enable', {}, sessionId)
   const caricata = evento('Page.loadEventFired')
   await invia('Page.navigate', { url }, sessionId)
   await caricata
+
+  // Nessun service worker deve sopravvivere fra una prova e l'altra: la sua
+  // cache mostrerebbe la versione precedente dell'app.
+  await invia('Runtime.evaluate', {
+    expression: `navigator.serviceWorker?.getRegistrations?.().then(r => Promise.all(r.map(x => x.unregister()))).then(n => n.length)`,
+    awaitPromise: true,
+  }, sessionId).catch(() => undefined)
+
   await pausa(Number(attesa))
 
   // CLIC="selettore" tocca un elemento prima di scattare: serve a fotografare
@@ -151,8 +189,12 @@ try {
     console.log('errore  :', await leggi(`document.querySelector('.stato h2')?.textContent ?? 'nessuno'`))
     console.log('istruz. :', await leggi(`document.querySelector('.istruzione')?.textContent ?? 'assente'`))
     console.log('video   :', await leggi(`(()=>{const v=document.querySelector('video');return JSON.stringify({src:!!v.srcObject,rs:v.readyState,w:v.videoWidth})})()`))
-    console.log('gUM     :', await leggi(`navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false}).then(()=>'ok').catch(e=>e.name+': '+e.message)`))
-    console.log('gUM base:', await leggi(`navigator.mediaDevices.getUserMedia({video:true}).then(()=>'ok').catch(e=>e.name+': '+e.message)`))
+    // Volutamente nessuna chiamata a getUserMedia da qui: chiedere la
+    // fotocamera mentre l'app la sta usando gliela porta via, e la misura
+    // finisce per descrivere la sonda invece dell'app.
+    console.log('traccia :', await leggi(`(()=>{const v=document.querySelector('video');const t=v&&v.srcObject&&v.srcObject.getVideoTracks?v.srcObject.getVideoTracks()[0]:null;return t?JSON.stringify({stato:t.readyState,muta:t.muted,attiva:t.enabled,impostazioni:t.getSettings?{w:t.getSettings().width,h:t.getSettings().height}:null}):'nessuna traccia'})()`))
+    console.log('tempo   :', await leggi(`(()=>{const v=document.querySelector('video');return JSON.stringify({corrente:v.currentTime,inPausa:v.paused,pronto:v.readyState})})()`))
+    console.log('sblocca :', await leggi(`document.querySelector('.sblocca') ? 'mostrato' : 'assente'`))
   }
 
   const { data } = await invia('Page.captureScreenshot', {
@@ -168,9 +210,7 @@ try {
   chrome.kill('SIGKILL')
   // Chrome sta ancora scrivendo nel profilo mentre chiude: se la pulizia
   // fallisce non è un problema, è una cartella temporanea.
-  if (process.env.FINTA_FOTOCAMERA !== '1') {
-    // Chrome sta ancora scrivendo nel profilo mentre chiude: se la pulizia
-    // fallisce non è un problema, è una cartella temporanea.
-    await rm(profilo, { recursive: true, force: true }).catch(() => undefined)
-  }
+  // Chrome sta ancora scrivendo nel profilo mentre chiude: se la pulizia
+  // fallisce non è un problema, è una cartella temporanea.
+  await rm(profilo, { recursive: true, force: true }).catch(() => undefined)
 }
